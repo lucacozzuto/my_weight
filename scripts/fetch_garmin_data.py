@@ -116,21 +116,67 @@ def parse_weight_entry(raw_entry: dict) -> dict:
 
 
 def fetch_from_garmin(email: str, password: str, start_date_str: str, end_date_str: str) -> list:
-    """Fetch weight data from Garmin Connect API."""
+    """Fetch weight data from Garmin Connect API using token restoration or credentials."""
+    import base64
     try:
         from garminconnect import Garmin
     except ImportError:
         print("ERROR: 'garminconnect' package is not installed. Run: pip install garminconnect")
         sys.exit(1)
 
-    print(f"Connecting to Garmin Connect for account: {email}...")
-    
+    token_dir = Path.home() / ".garminconnect"
+    token_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. Restore Base64 tokens if provided via secret
+    tokens_b64 = os.environ.get("GARMIN_TOKENS_BASE64", "").strip()
+    if tokens_b64:
+        print("Found GARMIN_TOKENS_BASE64, restoring session tokens...")
+        try:
+            tokens_json = base64.b64decode(tokens_b64.encode("utf-8")).decode("utf-8")
+            tokens_dict = json.loads(tokens_json)
+            for fname, content in tokens_dict.items():
+                fpath = token_dir / fname
+                fpath.write_text(content, encoding="utf-8")
+            print(f"Restored {len(tokens_dict)} session files to {token_dir}.")
+        except Exception as err:
+            print(f"Warning: Failed unpacking GARMIN_TOKENS_BASE64: {err}")
+
+    # 2. Attempt token-based authentication first (bypasses Cloudflare / 429 rate limits)
+    garmin = None
+    logged_in = False
+
     try:
-        garmin = Garmin(email, password)
-        garmin.login()
-    except Exception as e:
-        print(f"Error during Garmin login: {e}")
-        raise
+        print("Attempting login using session tokens...")
+        garmin = Garmin()
+        garmin.login(str(token_dir))
+        logged_in = True
+        print("✅ Successfully authenticated using session tokens!")
+    except Exception as token_err:
+        print(f"Notice: Session token auth failed or tokens not present: {token_err}")
+
+    # 3. Fallback to username & password
+    if not logged_in:
+        if email and password:
+            print(f"Falling back to credential login for '{email}'...")
+            try:
+                garmin = Garmin(email, password)
+                garmin.login()
+                logged_in = True
+                print("✅ Login with credentials successful!")
+                try:
+                    if hasattr(garmin, "dump"):
+                        garmin.dump(str(token_dir))
+                    elif hasattr(garmin, "client") and hasattr(garmin.client, "dump"):
+                        garmin.client.dump(str(token_dir))
+                    elif hasattr(garmin, "garth") and hasattr(garmin.garth, "dump"):
+                        garmin.garth.dump(str(token_dir))
+                except Exception:
+                    pass
+            except Exception as login_err:
+                print(f"❌ Credential login failed: {login_err}")
+                raise
+        else:
+            raise ValueError("No valid session tokens or GARMIN_EMAIL / GARMIN_PASSWORD provided.")
 
     start_dt = datetime.strptime(start_date_str, "%Y-%m-%d").date()
     end_dt = datetime.strptime(end_date_str, "%Y-%m-%d").date()

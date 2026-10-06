@@ -28,6 +28,8 @@ wheels/
 .env
 .env.*
 .garminconnect/
+.garminconnect_tokens/
+.garmin_tokens_b64.txt
 tokens.json
 garmin_tokens.json
 credentials.json

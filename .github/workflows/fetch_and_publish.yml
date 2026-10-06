@@ -50,6 +50,7 @@ jobs:
         env:
           GARMIN_EMAIL: ${{ secrets.GARMIN_EMAIL }}
           GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
+          GARMIN_TOKENS_BASE64: ${{ secrets.GARMIN_TOKENS_BASE64 }}
           GARMIN_START_DATE: ${{ vars.GARMIN_START_DATE || '2026-09-01' }}
           GARMIN_TARGET_WEIGHT: ${{ vars.GARMIN_TARGET_WEIGHT || '' }}
         run: |
