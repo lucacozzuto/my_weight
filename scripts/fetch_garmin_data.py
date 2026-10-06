@@ -978,6 +978,10 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       const ma7 = filtered.map(d => d.ma_7d ? (d.ma_7d * mult) : null);
       const ma30 = filtered.map(d => d.ma_30d ? (d.ma_30d * mult) : null);
 
+      const allWeights = [...weights, ...ma7, ...ma30].filter(w => w !== null && !isNaN(w));
+      const minW = allWeights.length > 0 ? Math.floor(Math.min(...allWeights) - 1) : undefined;
+      const maxW = allWeights.length > 0 ? Math.ceil(Math.max(...allWeights) + 1) : undefined;
+
       if (weightChartInstance) {{
         weightChartInstance.destroy();
       }}
@@ -1058,6 +1062,8 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
               ticks: {{ color: '#64748b', maxTicksLimit: 8 }}
             }},
             y: {{
+              min: minW,
+              max: maxW,
               grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
               ticks: {{
                 color: '#64748b',
@@ -1077,6 +1083,10 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       const labels = filtered.map(d => d.date);
       const fat = filtered.map(d => d.body_fat_pct);
       const water = filtered.map(d => d.body_water_pct);
+
+      const validVals = [...fat, ...water].filter(v => v !== null && !isNaN(v));
+      const minPct = validVals.length > 0 ? Math.floor(Math.min(...validVals) - 2) : undefined;
+      const maxPct = validVals.length > 0 ? Math.ceil(Math.max(...validVals) + 2) : undefined;
 
       if (compChartInstance) compChartInstance.destroy();
 
@@ -1115,7 +1125,12 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
           }},
           scales: {{
             x: {{ grid: {{ color: 'rgba(255, 255, 255, 0.05)' }}, ticks: {{ color: '#64748b', maxTicksLimit: 6 }} }},
-            y: {{ grid: {{ color: 'rgba(255, 255, 255, 0.05)' }}, ticks: {{ color: '#64748b', callback: (v) => `${{v}}%` }} }}
+            y: {{
+              min: minPct,
+              max: maxPct,
+              grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
+              ticks: {{ color: '#64748b', callback: (v) => `${{v}}%` }}
+            }}
           }}
         }}
       }});
@@ -1139,6 +1154,9 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       }});
 
       const avgs = sums.map((s, i) => counts[i] > 0 ? (s / counts[i]).toFixed(2) : null);
+      const validAvgs = avgs.filter(v => v !== null).map(Number);
+      const minW = validAvgs.length > 0 ? Math.floor(Math.min(...validAvgs) - 0.5) : undefined;
+      const maxW = validAvgs.length > 0 ? Math.ceil(Math.max(...validAvgs) + 0.5) : undefined;
 
       if (weekdayChartInstance) weekdayChartInstance.destroy();
 
@@ -1164,9 +1182,10 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
           scales: {{
             x: {{ grid: {{ display: false }}, ticks: {{ color: '#64748b' }} }},
             y: {{
+              min: minW,
+              max: maxW,
               grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
-              ticks: {{ color: '#64748b' }},
-              min: avgs.filter(v => v !== null).length > 0 ? Math.floor(Math.min(...avgs.filter(v => v !== null)) - 1) : undefined
+              ticks: {{ color: '#64748b', callback: (v) => `${{Number(v).toFixed(1)}} ${{currentUnit}}` }}
             }}
           }}
         }}
@@ -1236,6 +1255,10 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         }}
       }});
 
+      const flatWeights = boxData.flat().filter(w => w !== null && !isNaN(w));
+      const minW = flatWeights.length > 0 ? Math.floor(Math.min(...flatWeights) - 1) : undefined;
+      const maxW = flatWeights.length > 0 ? Math.ceil(Math.max(...flatWeights) + 1) : undefined;
+
       if (weeklyBoxplotInstance) {{
         weeklyBoxplotInstance.destroy();
       }}
@@ -1296,6 +1319,8 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
               ticks: {{ color: '#94a3b8', font: {{ family: 'Inter', size: 11 }} }}
             }},
             y: {{
+              min: minW,
+              max: maxW,
               grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
               ticks: {{
                 color: '#64748b',
