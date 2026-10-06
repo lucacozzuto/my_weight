@@ -571,6 +571,41 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
       
+      <!-- Stima Massa Grassa Persa Card -->
+      <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm border border-indigo-500/20 bg-gradient-to-r from-indigo-950/40 via-surface-900/60 to-purple-950/40">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div class="flex items-center space-x-3.5">
+            <div class="p-2.5 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+              <i data-lucide="flame" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <div class="flex items-center space-x-2">
+                <h3 class="font-bold text-white text-base sm:text-lg">Stima Massa Grassa Persa</h3>
+                <span id="fatLossPeriodTag" class="text-[11px] px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">Inizializzazione...</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">Calcolo: Mediana Peso × Mediana Grasso % (Prima Settimana vs Periodo Attuale)</p>
+            </div>
+          </div>
+
+          <div class="flex items-center bg-slate-900/90 px-4 py-3 rounded-xl border border-slate-700/60 space-x-3 sm:space-x-4 self-start md:self-auto font-mono text-xs sm:text-sm">
+            <div class="text-left">
+              <span class="text-[10px] uppercase text-slate-500 block font-sans">Stima Inizio</span>
+              <span id="fatStartVal" class="font-bold text-slate-200">--</span>
+            </div>
+            <span class="text-slate-500 text-lg font-bold">−</span>
+            <div class="text-left">
+              <span class="text-[10px] uppercase text-slate-500 block font-sans" id="fatCurrLabel">Stima In Corso</span>
+              <span id="fatCurrVal" class="font-bold text-slate-200">--</span>
+            </div>
+            <span class="text-slate-500 text-lg font-bold">=</span>
+            <div class="text-left">
+              <span class="text-[10px] uppercase text-slate-500 block font-sans">Differenza</span>
+              <span id="fatDiffVal" class="font-extrabold text-sm sm:text-base text-emerald-400">--</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Metric Stat Cards Grid -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         
@@ -936,6 +971,110 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       return RAW_DATA.filter(d => d.date >= cutoffStr);
     }}
 
+    function getMedian(arr) {{
+      if (!arr || arr.length === 0) return null;
+      const sorted = [...arr].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    }}
+
+    function calculateFatLossStats() {{
+      if (!RAW_DATA || RAW_DATA.length === 0) return;
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+      const unitStr = currentUnit;
+
+      const weeksMap = new Map();
+      RAW_DATA.forEach(entry => {{
+        if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
+        const parts = entry.date.split('-');
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const dayOfWeek = (d.getDay() + 6) % 7; // 0 = Mon, 6 = Sun
+        const mon = new Date(d);
+        mon.setDate(d.getDate() - dayOfWeek);
+        const sun = new Date(mon);
+        sun.setDate(mon.getDate() + 6);
+        const key = mon.toISOString().slice(0, 10);
+        if (!weeksMap.has(key)) {{
+          weeksMap.set(key, {{
+            monday: mon,
+            sunday: sun,
+            weights: [],
+            bodyFats: []
+          }});
+        }}
+        weeksMap.get(key).weights.push(entry.weight_kg * mult);
+        if (entry.body_fat_pct !== null && entry.body_fat_pct !== undefined && !isNaN(entry.body_fat_pct)) {{
+          weeksMap.get(key).bodyFats.push(entry.body_fat_pct);
+        }}
+      }});
+
+      const sortedWeeks = Array.from(weeksMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      if (sortedWeeks.length === 0) return;
+
+      const monthsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+
+      // First week
+      const firstWeek = sortedWeeks[0][1];
+      const w1WeightMed = getMedian(firstWeek.weights);
+      const w1FatMed = getMedian(firstWeek.bodyFats);
+
+      // Latest week & check if > 4 days
+      const latestWeekIndex = sortedWeeks.length - 1;
+      const latestWeek = sortedWeeks[latestWeekIndex][1];
+      const hasMoreThan4Days = latestWeek.weights.length > 4;
+
+      let targetWeek;
+      let targetLabel;
+      let periodTagText;
+
+      if (hasMoreThan4Days || sortedWeeks.length === 1) {{
+        targetWeek = latestWeek;
+        targetLabel = "Stima In Corso";
+        const monStr = `${{targetWeek.monday.getDate()}} ${{monthsShort[targetWeek.monday.getMonth()]}}`;
+        const sunStr = `${{targetWeek.sunday.getDate()}} ${{monthsShort[targetWeek.sunday.getMonth()]}}`;
+        periodTagText = `Settimana in corso (${{targetWeek.weights.length}} pesate: ${{monStr}} - ${{sunStr}})`;
+      }} else {{
+        // Use previous week
+        targetWeek = sortedWeeks[latestWeekIndex - 1][1];
+        targetLabel = "Stima Sett. Prec.";
+        const monStr = `${{targetWeek.monday.getDate()}} ${{monthsShort[targetWeek.monday.getMonth()]}}`;
+        const sunStr = `${{targetWeek.sunday.getDate()}} ${{monthsShort[targetWeek.sunday.getMonth()]}}`;
+        periodTagText = `Settimana prec. (${{monStr}} - ${{sunStr}} &bull; in corso ≤ 4gg)`;
+      }}
+
+      const targetWeightMed = getMedian(targetWeek.weights);
+      const targetFatMed = getMedian(targetWeek.bodyFats);
+
+      if (w1WeightMed !== null && w1FatMed !== null && targetWeightMed !== null && targetFatMed !== null) {{
+        const fatStart = w1WeightMed * (w1FatMed / 100);
+        const fatCurrent = targetWeightMed * (targetFatMed / 100);
+        const fatDiff = fatStart - fatCurrent;
+
+        document.getElementById('fatStartVal').textContent = `${{fatStart.toFixed(2)}} ${{unitStr}}`;
+        document.getElementById('fatCurrLabel').textContent = targetLabel;
+        document.getElementById('fatCurrVal').textContent = `${{fatCurrent.toFixed(2)}} ${{unitStr}}`;
+        document.getElementById('fatLossPeriodTag').innerHTML = periodTagText;
+
+        const diffEl = document.getElementById('fatDiffVal');
+        const diffAbs = Math.abs(fatDiff).toFixed(2);
+        if (fatDiff > 0) {{
+          diffEl.className = "font-extrabold text-sm sm:text-base text-emerald-400";
+          diffEl.textContent = `-${{diffAbs}} ${{unitStr}} (${{fatDiff.toFixed(2)}} persi)`;
+        }} else if (fatDiff < 0) {{
+          diffEl.className = "font-extrabold text-sm sm:text-base text-rose-400";
+          diffEl.textContent = `+${{diffAbs}} ${{unitStr}}`;
+        }} else {{
+          diffEl.className = "font-extrabold text-sm sm:text-base text-slate-300";
+          diffEl.textContent = `0.00 ${{unitStr}}`;
+        }}
+      }} else {{
+        document.getElementById('fatStartVal').textContent = '--';
+        document.getElementById('fatCurrVal').textContent = '--';
+        document.getElementById('fatDiffVal').textContent = '--';
+        document.getElementById('fatLossPeriodTag').textContent = 'Dati parziali';
+      }}
+    }}
+
     function updateStats() {{
       if (!RAW_DATA || RAW_DATA.length === 0) return;
       
@@ -966,6 +1105,8 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       document.getElementById('statBodyFat').textContent = latest.body_fat_pct ? `${{latest.body_fat_pct}}%` : '--';
       document.getElementById('statMuscle').textContent = latest.muscle_mass_kg ? `${{(latest.muscle_mass_kg * mult).toFixed(1)}} ${{unitStr}}` : '--';
       document.getElementById('statWater').textContent = latest.body_water_pct ? `${{latest.body_water_pct}}%` : '--';
+
+      calculateFatLossStats();
     }}
 
     function renderMainChart() {{
