@@ -463,7 +463,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
   </script>
   
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@sgratzl/chartjs-chart-boxplot@4.3.5/build/index.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@sgratzl/chartjs-chart-boxplot@4.4.4/build/index.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
 
   <style>
@@ -1308,10 +1308,10 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
     }}
 
     function renderCharts() {{
-      renderMainChart();
-      renderWeeklyBoxplot();
-      renderCompositionChart();
-      renderWeekdayChart();
+      try {{ renderMainChart(); }} catch (e) {{ console.error("Error rendering main chart:", e); }}
+      try {{ renderWeeklyBoxplot(); }} catch (e) {{ console.error("Error rendering weekly boxplot:", e); }}
+      try {{ renderCompositionChart(); }} catch (e) {{ console.error("Error rendering composition chart:", e); }}
+      try {{ renderWeekdayChart(); }} catch (e) {{ console.error("Error rendering weekday chart:", e); }}
     }}
 
     function renderTable() {{
