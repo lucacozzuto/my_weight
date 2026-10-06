@@ -1,1 +1,2 @@
-garminconnect>=0.2.8
+garminconnect>=0.3.17
+cryptography>=41.0.0

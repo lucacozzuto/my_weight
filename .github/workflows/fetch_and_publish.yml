@@ -1,10 +1,10 @@
-name: Fetch Garmin Weight & Update Dashboard
+name: Fetch Garmin Weight & Deploy Protected Dashboard
 
 on:
   schedule:
     # Run every morning at 06:00, 07:00, 08:00, and 09:00 UTC
     - cron: '0 6,7,8,9 * * *'
-  workflow_dispatch: # Allows manual trigger from GitHub Actions UI
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -15,9 +15,15 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  fetch-and-sync:
+  sync-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -36,11 +42,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Fetch Garmin Data & Generate Dashboard
+      - name: Fetch Garmin Data & Encrypt Dashboard
         env:
           GARMIN_EMAIL: ${{ secrets.GARMIN_EMAIL }}
           GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
           GARMIN_TOKENS_BASE64: ${{ secrets.GARMIN_TOKENS_BASE64 }}
+          DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
           GARMIN_START_DATE: ${{ vars.GARMIN_START_DATE || '2026-09-01' }}
           GARMIN_TARGET_WEIGHT: ${{ vars.GARMIN_TARGET_WEIGHT || '' }}
         run: |
@@ -49,7 +56,27 @@ jobs:
       - name: Commit and push updated data
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Automated: update weight history and dashboard [skip ci]"
+          commit_message: "Automated: update encrypted weight history and dashboard [skip ci]"
           file_pattern: "data/* docs/*"
           commit_user_name: "github-actions[bot]"
           commit_user_email: "github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Pages
+        id: setup-pages
+        continue-on-error: true
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        if: steps.setup-pages.outcome == 'success'
+        continue-on-error: true
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './docs'
+
+      - name: Deploy to GitHub Pages
+        if: steps.setup-pages.outcome == 'success'
+        continue-on-error: true
+        id: deployment
+        uses: actions/deploy-pages@v4

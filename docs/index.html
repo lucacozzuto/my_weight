@@ -1,10 +1,14 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="it" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Garmin Weight & Body Composition Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Garmin Weight & Health Analytics</title>
   
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/lucacozzuto/my_weight/main/docs/icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -32,9 +36,7 @@
     }
   </script>
   
-  <!-- Chart.js and date-fns adapter -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
 
   <style>
@@ -43,239 +45,401 @@
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
     .glass-card {
-      background: rgba(30, 41, 59, 0.7);
+      background: rgba(30, 41, 59, 0.75);
       backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
   </style>
 </head>
-<body class="bg-surface-950 text-slate-100 min-h-screen transition-colors duration-200">
+<body class="bg-surface-950 text-slate-100 min-h-screen transition-colors duration-200 antialiased">
   
-  <!-- Top Navigation Bar -->
-  <header class="border-b border-slate-800 bg-surface-900/80 sticky top-0 z-50 backdrop-blur-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-          <i data-lucide="scale" class="w-5 h-5 text-white"></i>
-        </div>
-        <div>
-          <h1 class="font-bold text-lg text-white leading-tight">Weight & Health Analytics</h1>
-          <p class="text-xs text-slate-400">Garmin Connect Auto-Sync</p>
-        </div>
+  <!-- LOCK SCREEN MODAL (When Encrypted) -->
+  <div id="lockScreen" class="fixed inset-0 z-[100] flex items-center justify-center bg-surface-950/95 backdrop-blur-xl p-4 transition-all duration-300">
+    <div class="glass-card w-full max-w-md p-8 rounded-3xl shadow-2xl border border-slate-700/60 text-center space-y-6">
+      
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+        <i data-lucide="lock" class="w-8 h-8 text-white"></i>
       </div>
 
-      <div class="flex items-center space-x-3">
-        <!-- Unit Toggle -->
-        <div class="bg-slate-800 p-1 rounded-lg flex items-center border border-slate-700 text-xs font-semibold">
-          <button id="btnKg" onclick="setUnit('kg')" class="px-2.5 py-1 rounded-md bg-indigo-600 text-white transition">kg</button>
-          <button id="btnLbs" onclick="setUnit('lbs')" class="px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition">lbs</button>
+      <div>
+        <h2 class="text-2xl font-extrabold text-white">Area Protetta</h2>
+        <p class="text-sm text-slate-400 mt-1">Inserisci la password per visualizzare i tuoi dati Garmin</p>
+      </div>
+
+      <form id="unlockForm" onsubmit="handleUnlock(event)" class="space-y-4">
+        <div class="relative text-left">
+          <input 
+            type="password" 
+            id="passwordInput" 
+            placeholder="Password di sblocco" 
+            required
+            autocomplete="current-password"
+            class="w-full px-4 py-3.5 rounded-xl bg-slate-900/90 border border-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-white placeholder-slate-500 outline-none transition"
+          />
+          <button 
+            type="button" 
+            onclick="togglePasswordVisibility()" 
+            class="absolute right-3.5 top-3.5 text-slate-400 hover:text-white"
+          >
+            <i data-lucide="eye" id="eyeIcon" class="w-5 h-5"></i>
+          </button>
         </div>
 
-        <!-- Refresh indicator -->
-        <div class="hidden sm:flex items-center text-xs text-slate-400 bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-lg space-x-2">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>Updated: <span id="lastUpdatedHeader">2026-10-06 12:08:01 UTC</span></span>
+        <div class="flex items-center justify-between text-xs text-slate-400 px-1">
+          <label class="flex items-center space-x-2 cursor-pointer select-none">
+            <input type="checkbox" id="rememberMeCheckbox" checked class="rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-indigo-500" />
+            <span>Ricorda su questo dispositivo</span>
+          </label>
         </div>
-      </div>
+
+        <div id="unlockError" class="text-xs text-rose-400 hidden font-medium">
+          Password errata. Riprova.
+        </div>
+
+        <button 
+          type="submit" 
+          id="unlockBtn"
+          class="w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-2"
+        >
+          <span>Sblocca Dashboard</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </form>
+
+      <p class="text-xs text-slate-500">Cifratura AES-256 &bull; Dati memorizzati in forma protetta</p>
     </div>
-  </header>
+  </div>
 
-  <!-- Main Container -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <!-- DASHBOARD WRAPPER -->
+  <div id="dashboardContent" class="opacity-0 transition-opacity duration-300">
     
-    <!-- Metric Stat Cards Grid -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+    <!-- Top Navigation Bar -->
+    <header class="border-b border-slate-800 bg-surface-900/80 sticky top-0 z-50 backdrop-blur-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <i data-lucide="scale" class="w-5 h-5 text-white"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-base sm:text-lg text-white leading-tight">Weight Analytics</h1>
+            <p class="text-xs text-slate-400">Garmin Connect</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          <!-- Unit Toggle -->
+          <div class="bg-slate-800 p-1 rounded-lg flex items-center border border-slate-700 text-xs font-semibold">
+            <button id="btnKg" onclick="setUnit('kg')" class="px-2.5 py-1 rounded-md bg-indigo-600 text-white transition">kg</button>
+            <button id="btnLbs" onclick="setUnit('lbs')" class="px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition">lbs</button>
+          </div>
+
+          <!-- Lock / Logout button -->
+          <button onclick="lockDashboard()" title="Blocca Dashboard" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition">
+            <i data-lucide="lock" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
       
-      <!-- Current Weight Card -->
-      <div class="glass-card rounded-2xl p-5 shadow-sm hover:border-indigo-500/40 transition">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Current Weight</span>
-          <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg">
-            <i data-lucide="activity" class="w-4 h-4"></i>
+      <!-- Metric Stat Cards Grid -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        
+        <!-- Current Weight Card -->
+        <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Peso Attuale</span>
+            <div class="p-1.5 bg-indigo-500/10 text-indigo-400 rounded-lg">
+              <i data-lucide="activity" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-2 sm:mt-3 flex items-baseline space-x-2">
+            <span id="statCurrentWeight" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">--</span>
+            <span id="statUnit1" class="text-xs sm:text-sm font-medium text-slate-400">kg</span>
+          </div>
+          <div class="mt-2 flex items-center text-xs space-x-1">
+            <span class="text-slate-400">Da inizio:</span>
+            <span id="statTotalChange" class="font-semibold">--</span>
           </div>
         </div>
-        <div class="mt-3 flex items-baseline space-x-2">
-          <span id="statCurrentWeight" class="text-3xl font-extrabold tracking-tight text-white">--</span>
-          <span id="statUnit1" class="text-sm font-medium text-slate-400">kg</span>
+
+        <!-- 7-Day Trend Card -->
+        <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Media 7 Giorni</span>
+            <div class="p-1.5 bg-cyan-500/10 text-cyan-400 rounded-lg">
+              <i data-lucide="trending-down" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-2 sm:mt-3 flex items-baseline space-x-2">
+            <span id="stat7dAvg" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">--</span>
+            <span id="statUnit2" class="text-xs sm:text-sm font-medium text-slate-400">kg</span>
+          </div>
+          <div class="mt-2 flex items-center text-xs space-x-1">
+            <span class="text-slate-400">Delta 7g:</span>
+            <span id="stat7dChange" class="font-semibold">--</span>
+          </div>
         </div>
-        <div class="mt-2 flex items-center text-xs space-x-1" id="badgeTotalChange">
-          <span class="text-slate-400">Since start:</span>
-          <span id="statTotalChange" class="font-semibold">--</span>
+
+        <!-- 30-Day Trend Card -->
+        <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Delta 30 Giorni</span>
+            <div class="p-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg">
+              <i data-lucide="calendar" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-2 sm:mt-3 flex items-baseline space-x-2">
+            <span id="stat30dChange" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">--</span>
+            <span id="statUnit3" class="text-xs sm:text-sm font-medium text-slate-400">kg</span>
+          </div>
+          <div class="mt-2 flex items-center text-xs space-x-1">
+            <span class="text-slate-400">Min/Max:</span>
+            <span id="statMinMax" class="text-slate-300 font-medium">--</span>
+          </div>
         </div>
+
+        <!-- Body Composition / BMI Card -->
+        <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Composizione</span>
+            <div class="p-1.5 bg-purple-500/10 text-purple-400 rounded-lg">
+              <i data-lucide="heart-pulse" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-2 sm:mt-3 flex items-baseline space-x-3">
+            <div>
+              <span class="text-[10px] text-slate-400 block">BMI</span>
+              <span id="statBMI" class="text-xl sm:text-2xl font-bold text-white">--</span>
+            </div>
+            <div class="border-l border-slate-700 pl-3">
+              <span class="text-[10px] text-slate-400 block">Grasso</span>
+              <span id="statBodyFat" class="text-xl sm:text-2xl font-bold text-white">--</span>
+            </div>
+          </div>
+          <div class="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
+            <span>Muscolo: <span id="statMuscle" class="text-slate-200 font-semibold">--</span></span>
+            <span>Acqua: <span id="statWater" class="text-slate-200 font-semibold">--</span></span>
+          </div>
+        </div>
+
       </div>
 
-      <!-- 7-Day Trend Card -->
-      <div class="glass-card rounded-2xl p-5 shadow-sm hover:border-indigo-500/40 transition">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">7-Day Moving Avg</span>
-          <div class="p-2 bg-cyan-500/10 text-cyan-400 rounded-lg">
-            <i data-lucide="trending-down" class="w-4 h-4"></i>
-          </div>
-        </div>
-        <div class="mt-3 flex items-baseline space-x-2">
-          <span id="stat7dAvg" class="text-3xl font-extrabold tracking-tight text-white">--</span>
-          <span id="statUnit2" class="text-sm font-medium text-slate-400">kg</span>
-        </div>
-        <div class="mt-2 flex items-center text-xs space-x-1">
-          <span class="text-slate-400">7-Day Delta:</span>
-          <span id="stat7dChange" class="font-semibold">--</span>
-        </div>
-      </div>
-
-      <!-- 30-Day Trend Card -->
-      <div class="glass-card rounded-2xl p-5 shadow-sm hover:border-indigo-500/40 transition">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">30-Day Change</span>
-          <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg">
-            <i data-lucide="calendar" class="w-4 h-4"></i>
-          </div>
-        </div>
-        <div class="mt-3 flex items-baseline space-x-2">
-          <span id="stat30dChange" class="text-3xl font-extrabold tracking-tight text-white">--</span>
-          <span id="statUnit3" class="text-sm font-medium text-slate-400">kg</span>
-        </div>
-        <div class="mt-2 flex items-center text-xs space-x-1">
-          <span class="text-slate-400">Range:</span>
-          <span id="statMinMax" class="text-slate-300 font-medium">--</span>
-        </div>
-      </div>
-
-      <!-- Body Composition / BMI Card -->
-      <div class="glass-card rounded-2xl p-5 shadow-sm hover:border-indigo-500/40 transition">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Body Stats</span>
-          <div class="p-2 bg-purple-500/10 text-purple-400 rounded-lg">
-            <i data-lucide="heart-pulse" class="w-4 h-4"></i>
-          </div>
-        </div>
-        <div class="mt-3 flex items-baseline space-x-3">
+      <!-- Main Chart Section -->
+      <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 sm:pb-6 border-b border-slate-800">
           <div>
-            <span class="text-xs text-slate-400 block">BMI</span>
-            <span id="statBMI" class="text-2xl font-bold text-white">--</span>
+            <h2 class="text-base sm:text-lg font-bold text-white">Progressione del Peso & Medie Mobili</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Misurazioni mattutine e linea di tendenza</p>
           </div>
-          <div class="border-l border-slate-700 pl-3">
-            <span class="text-xs text-slate-400 block">Body Fat</span>
-            <span id="statBodyFat" class="text-2xl font-bold text-white">--</span>
+
+          <!-- Time Range Filters -->
+          <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-medium space-x-1 self-start sm:self-auto">
+            <button onclick="setTimeRange('7d')" id="btnRange7d" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">7G</button>
+            <button onclick="setTimeRange('30d')" id="btnRange30d" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">30G</button>
+            <button onclick="setTimeRange('90d')" id="btnRange90d" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">3M</button>
+            <button onclick="setTimeRange('all')" id="btnRangeAll" class="px-2.5 sm:px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition">Tutto (Settembre)</button>
           </div>
         </div>
-        <div class="mt-2 text-xs text-slate-400 flex items-center justify-between">
-          <span>Muscle: <span id="statMuscle" class="text-slate-200 font-semibold">--</span></span>
-          <span>Water: <span id="statWater" class="text-slate-200 font-semibold">--</span></span>
+
+        <div class="mt-4 sm:mt-6 relative h-[320px] sm:h-[380px] w-full">
+          <canvas id="weightChart"></canvas>
         </div>
       </div>
 
-    </div>
-
-    <!-- Main Chart Section -->
-    <div class="glass-card rounded-2xl p-6 shadow-sm">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-slate-800">
-        <div>
-          <h2 class="text-lg font-bold text-white flex items-center space-x-2">
-            <span>Weight Progression & Moving Averages</span>
-          </h2>
-          <p class="text-xs text-slate-400 mt-0.5">Tracking daily morning weigh-ins and trendline</p>
+      <!-- Secondary Charts Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div>
+              <h3 class="font-bold text-white text-sm sm:text-base">Composizione Corporea nel Tempo</h3>
+              <p class="text-xs text-slate-400">Grasso % e Acqua %</p>
+            </div>
+            <div class="p-1.5 bg-purple-500/10 text-purple-400 rounded-lg">
+              <i data-lucide="pie-chart" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-4 relative h-[240px] sm:h-[260px] w-full">
+            <canvas id="compositionChart"></canvas>
+          </div>
         </div>
 
-        <!-- Time Range Filters -->
-        <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-medium space-x-1 self-start sm:self-auto">
-          <button onclick="setTimeRange('7d')" id="btnRange7d" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">7D</button>
-          <button onclick="setTimeRange('30d')" id="btnRange30d" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">30D</button>
-          <button onclick="setTimeRange('90d')" id="btnRange90d" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">3M</button>
-          <button onclick="setTimeRange('all')" id="btnRangeAll" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition">All</button>
+        <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div>
+              <h3 class="font-bold text-white text-sm sm:text-base">Media per Giorno della Settimana</h3>
+              <p class="text-xs text-slate-400">Distribuzione delle fluttuazioni</p>
+            </div>
+            <div class="p-1.5 bg-cyan-500/10 text-cyan-400 rounded-lg">
+              <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-4 relative h-[240px] sm:h-[260px] w-full">
+            <canvas id="weekdayChart"></canvas>
+          </div>
         </div>
+
       </div>
 
-      <!-- Main Line Chart Canvas -->
-      <div class="mt-6 relative h-[380px] w-full">
-        <canvas id="weightChart"></canvas>
-      </div>
-    </div>
-
-    <!-- Secondary Charts (Body Composition & Weekly Fluctuations) -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      
-      <!-- Body Composition Chart -->
-      <div class="glass-card rounded-2xl p-6 shadow-sm">
-        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+      <!-- Data Table Section -->
+      <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
           <div>
-            <h3 class="font-bold text-white text-base">Body Composition Over Time</h3>
-            <p class="text-xs text-slate-400">Fat % and Muscle Mass trends</p>
+            <h3 class="font-bold text-white text-sm sm:text-base">Storico Pesate Recenti</h3>
+            <p class="text-xs text-slate-400">Sincronizzate da Garmin Connect</p>
           </div>
-          <div class="p-2 bg-purple-500/10 text-purple-400 rounded-lg">
-            <i data-lucide="pie-chart" class="w-4 h-4"></i>
-          </div>
+          <span class="text-xs text-slate-400" id="tableCount"></span>
         </div>
-        <div class="mt-4 relative h-[260px] w-full">
-          <canvas id="compositionChart"></canvas>
+
+        <div class="overflow-x-auto mt-4">
+          <table class="w-full text-left text-xs sm:text-sm text-slate-300 whitespace-nowrap">
+            <thead class="text-[11px] uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
+              <tr>
+                <th class="py-2.5 px-3 font-semibold">Data</th>
+                <th class="py-2.5 px-3 font-semibold">Ora</th>
+                <th class="py-2.5 px-3 font-semibold">Peso</th>
+                <th class="py-2.5 px-3 font-semibold">Diff. Giornaliera</th>
+                <th class="py-2.5 px-3 font-semibold">Media 7g</th>
+                <th class="py-2.5 px-3 font-semibold">BMI</th>
+                <th class="py-2.5 px-3 font-semibold">Grasso %</th>
+                <th class="py-2.5 px-3 font-semibold">Muscolo</th>
+              </tr>
+            </thead>
+            <tbody id="dataTableBody" class="divide-y divide-slate-800/60">
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <!-- Weekly Distribution / Daily Fluctuations -->
-      <div class="glass-card rounded-2xl p-6 shadow-sm">
-        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-          <div>
-            <h3 class="font-bold text-white text-base">Day-of-Week Patterns</h3>
-            <p class="text-xs text-slate-400">Average weigh-in comparison by weekday</p>
-          </div>
-          <div class="p-2 bg-cyan-500/10 text-cyan-400 rounded-lg">
-            <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
-          </div>
-        </div>
-        <div class="mt-4 relative h-[260px] w-full">
-          <canvas id="weekdayChart"></canvas>
-        </div>
-      </div>
+    </main>
 
-    </div>
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500">
+      <p>Garmin Connect Sync &bull; Aggiornato automaticamente ogni mattina</p>
+    </footer>
 
-    <!-- Data Table Section -->
-    <div class="glass-card rounded-2xl p-6 shadow-sm">
-      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-        <div>
-          <h3 class="font-bold text-white text-base">Recent Weigh-in Records</h3>
-          <p class="text-xs text-slate-400">Detailed logs synchronized from Garmin</p>
-        </div>
-        <span class="text-xs text-slate-400" id="tableCount">Showing recent entries</span>
-      </div>
+  </div>
 
-      <div class="overflow-x-auto mt-4">
-        <table class="w-full text-left text-sm text-slate-300">
-          <thead class="text-xs uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
-            <tr>
-              <th class="py-3 px-4 font-semibold">Date</th>
-              <th class="py-3 px-4 font-semibold">Time</th>
-              <th class="py-3 px-4 font-semibold">Weight</th>
-              <th class="py-3 px-4 font-semibold">Daily Diff</th>
-              <th class="py-3 px-4 font-semibold">7-Day Avg</th>
-              <th class="py-3 px-4 font-semibold">BMI</th>
-              <th class="py-3 px-4 font-semibold">Body Fat %</th>
-              <th class="py-3 px-4 font-semibold">Muscle Mass</th>
-            </tr>
-          </thead>
-          <tbody id="dataTableBody" class="divide-y divide-slate-800/60">
-            <!-- Populated dynamically via JS -->
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-  </main>
-
-  <!-- Footer -->
-  <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500">
-    <p>Powered by Garmin Connect API & GitHub Actions &bull; Automatically updated every morning</p>
-  </footer>
-
-  <!-- Script Logic -->
+  <!-- SCRIPT ENGINE -->
   <script>
-    const RAW_DATA = [{"timestamp": "2026-09-07T07:37:12", "date": "2026-09-07", "time": "07:37:12", "weight_kg": 86.05, "weight_lbs": 189.71, "bmi": 27.8, "body_fat_pct": 28.6, "body_water_pct": 51.0, "bone_mass_kg": 3.13, "muscle_mass_kg": 58.31, "visceral_fat": 20.0, "metabolic_age": 1388504744000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 86.05, "ma_30d": 86.05, "change_prev_kg": 0.0, "change_from_start_kg": 0.0}, {"timestamp": "2026-09-08T06:09:22", "date": "2026-09-08", "time": "06:09:22", "weight_kg": 84.85, "weight_lbs": 187.06, "bmi": 27.4, "body_fat_pct": 27.9, "body_water_pct": 49.5, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.06, "visceral_fat": 19.0, "metabolic_age": 1325390892000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 85.45, "ma_30d": 85.45, "change_prev_kg": -1.2, "change_from_start_kg": -1.2}, {"timestamp": "2026-09-09T06:02:18", "date": "2026-09-09", "time": "06:02:18", "weight_kg": 84.85, "weight_lbs": 187.06, "bmi": 27.4, "body_fat_pct": 27.9, "body_water_pct": 49.5, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.06, "visceral_fat": 19.0, "metabolic_age": 1325390892000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 85.25, "ma_30d": 85.25, "change_prev_kg": 0.0, "change_from_start_kg": -1.2}, {"timestamp": "2026-09-10T06:06:26", "date": "2026-09-10", "time": "06:06:26", "weight_kg": 84.65, "weight_lbs": 186.62, "bmi": 27.3, "body_fat_pct": 27.3, "body_water_pct": 49.8, "bone_mass_kg": 3.13, "muscle_mass_kg": 58.37, "visceral_fat": 19.0, "metabolic_age": 1230720114000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 85.1, "ma_30d": 85.1, "change_prev_kg": -0.2, "change_from_start_kg": -1.4}, {"timestamp": "2026-09-11T08:31:47", "date": "2026-09-11", "time": "08:31:47", "weight_kg": 84.35, "weight_lbs": 185.96, "bmi": 27.2, "body_fat_pct": 28.1, "body_water_pct": 49.3, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.57, "visceral_fat": 19.0, "metabolic_age": 1420061670000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.95, "ma_30d": 84.95, "change_prev_kg": -0.3, "change_from_start_kg": -1.7}, {"timestamp": "2026-09-12T07:51:56", "date": "2026-09-12", "time": "07:51:56", "weight_kg": 84.1, "weight_lbs": 185.41, "bmi": 27.2, "body_fat_pct": 27.9, "body_water_pct": 49.4, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.52, "visceral_fat": 19.0, "metabolic_age": 1388504744000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.81, "ma_30d": 84.81, "change_prev_kg": -0.25, "change_from_start_kg": -1.95}, {"timestamp": "2026-09-13T08:38:01", "date": "2026-09-13", "time": "08:38:01", "weight_kg": 83.9, "weight_lbs": 184.97, "bmi": 27.1, "body_fat_pct": 26.1, "body_water_pct": 50.7, "bone_mass_kg": 3.16, "muscle_mass_kg": 58.87, "visceral_fat": 18.0, "metabolic_age": 1041378558000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.68, "ma_30d": 84.68, "change_prev_kg": -0.2, "change_from_start_kg": -2.15}, {"timestamp": "2026-09-14T06:03:39", "date": "2026-09-14", "time": "06:03:39", "weight_kg": 83.9, "weight_lbs": 184.97, "bmi": 27.1, "body_fat_pct": 26.0, "body_water_pct": 50.7, "bone_mass_kg": 3.16, "muscle_mass_kg": 58.89, "visceral_fat": 18.0, "metabolic_age": 1009821632000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.37, "ma_30d": 84.58, "change_prev_kg": 0.0, "change_from_start_kg": -2.15}, {"timestamp": "2026-09-15T06:01:11", "date": "2026-09-15", "time": "06:01:11", "weight_kg": 83.7, "weight_lbs": 184.53, "bmi": 27.0, "body_fat_pct": 28.3, "body_water_pct": 49.2, "bone_mass_kg": 3.05, "muscle_mass_kg": 56.92, "visceral_fat": 18.0, "metabolic_age": 1514732448000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.21, "ma_30d": 84.48, "change_prev_kg": -0.2, "change_from_start_kg": -2.35}, {"timestamp": "2026-09-16T06:01:10", "date": "2026-09-16", "time": "06:01:10", "weight_kg": 83.8, "weight_lbs": 184.75, "bmi": 27.1, "body_fat_pct": 31.0, "body_water_pct": 49.2, "bone_mass_kg": 2.94, "muscle_mass_kg": 54.84, "visceral_fat": 18.0, "metabolic_age": 2051200190000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.06, "ma_30d": 84.41, "change_prev_kg": 0.1, "change_from_start_kg": -2.25}, {"timestamp": "2026-09-17T05:38:24", "date": "2026-09-17", "time": "05:38:24", "weight_kg": 83.55, "weight_lbs": 184.2, "bmi": 27.0, "body_fat_pct": 26.2, "body_water_pct": 50.6, "bone_mass_kg": 3.14, "muscle_mass_kg": 58.49, "visceral_fat": 18.0, "metabolic_age": 1072935484000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.9, "ma_30d": 84.34, "change_prev_kg": -0.25, "change_from_start_kg": -2.5}, {"timestamp": "2026-09-18T06:01:36", "date": "2026-09-18", "time": "06:01:36", "weight_kg": 83.85, "weight_lbs": 184.86, "bmi": 27.1, "body_fat_pct": 27.5, "body_water_pct": 49.7, "bone_mass_kg": 3.1, "muscle_mass_kg": 57.69, "visceral_fat": 18.0, "metabolic_age": 1325390892000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.83, "ma_30d": 84.3, "change_prev_kg": 0.3, "change_from_start_kg": -2.2}, {"timestamp": "2026-09-19T06:50:48", "date": "2026-09-19", "time": "06:50:48", "weight_kg": 83.7, "weight_lbs": 184.53, "bmi": 27.0, "body_fat_pct": 26.3, "body_water_pct": 50.6, "bone_mass_kg": 3.14, "muscle_mass_kg": 58.54, "visceral_fat": 18.0, "metabolic_age": 1104492410000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.77, "ma_30d": 84.25, "change_prev_kg": -0.15, "change_from_start_kg": -2.35}, {"timestamp": "2026-09-20T09:14:30", "date": "2026-09-20", "time": "09:14:30", "weight_kg": 84.25, "weight_lbs": 185.74, "bmi": 27.2, "body_fat_pct": 27.4, "body_water_pct": 49.8, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.05, "visceral_fat": 19.0, "metabolic_age": 1262277040000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.82, "ma_30d": 84.25, "change_prev_kg": 0.55, "change_from_start_kg": -1.8}, {"timestamp": "2026-09-21T05:53:07", "date": "2026-09-21", "time": "05:53:07", "weight_kg": 83.9, "weight_lbs": 184.97, "bmi": 27.1, "body_fat_pct": 31.1, "body_water_pct": 49.2, "bone_mass_kg": 2.94, "muscle_mass_kg": 54.84, "visceral_fat": 18.0, "metabolic_age": 2051200190000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.82, "ma_30d": 84.23, "change_prev_kg": -0.35, "change_from_start_kg": -2.15}, {"timestamp": "2026-09-22T05:59:10", "date": "2026-09-22", "time": "05:59:10", "weight_kg": 83.45, "weight_lbs": 183.98, "bmi": 26.9, "body_fat_pct": 26.1, "body_water_pct": 50.7, "bone_mass_kg": 3.14, "muscle_mass_kg": 58.5, "visceral_fat": 18.0, "metabolic_age": 1072935484000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.79, "ma_30d": 84.18, "change_prev_kg": -0.45, "change_from_start_kg": -2.6}, {"timestamp": "2026-09-23T05:53:11", "date": "2026-09-23", "time": "05:53:11", "weight_kg": 82.8, "weight_lbs": 182.54, "bmi": 26.7, "body_fat_pct": 25.2, "body_water_pct": 51.3, "bone_mass_kg": 3.15, "muscle_mass_kg": 58.75, "visceral_fat": 18.0, "metabolic_age": 946707780000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.64, "ma_30d": 84.1, "change_prev_kg": -0.65, "change_from_start_kg": -3.25}, {"timestamp": "2026-09-24T08:40:54", "date": "2026-09-24", "time": "08:40:54", "weight_kg": 82.6, "weight_lbs": 182.1, "bmi": 26.7, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.07, "muscle_mass_kg": 57.26, "visceral_fat": 18.0, "metabolic_age": 1293833966000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.51, "ma_30d": 84.01, "change_prev_kg": -0.2, "change_from_start_kg": -3.45}, {"timestamp": "2026-09-25T05:56:34", "date": "2026-09-25", "time": "05:56:34", "weight_kg": 83.25, "weight_lbs": 183.53, "bmi": 26.9, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.65, "visceral_fat": 18.0, "metabolic_age": 1262277040000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.42, "ma_30d": 83.97, "change_prev_kg": 0.65, "change_from_start_kg": -2.8}, {"timestamp": "2026-09-26T07:54:25", "date": "2026-09-26", "time": "07:54:25", "weight_kg": 83.1, "weight_lbs": 183.2, "bmi": 26.8, "body_fat_pct": 29.3, "body_water_pct": 50.4, "bone_mass_kg": 2.99, "muscle_mass_kg": 55.72, "visceral_fat": 18.0, "metabolic_age": 1735630930000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.34, "ma_30d": 83.93, "change_prev_kg": -0.15, "change_from_start_kg": -2.95}, {"timestamp": "2026-09-27T08:55:24", "date": "2026-09-27", "time": "08:55:24", "weight_kg": 83.95, "weight_lbs": 185.08, "bmi": 27.1, "body_fat_pct": 30.6, "body_water_pct": 49.6, "bone_mass_kg": 2.97, "muscle_mass_kg": 55.3, "visceral_fat": 18.0, "metabolic_age": 1924972486000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.29, "ma_30d": 83.93, "change_prev_kg": 0.85, "change_from_start_kg": -2.1}, {"timestamp": "2026-09-28T05:59:40", "date": "2026-09-28", "time": "05:59:40", "weight_kg": 83.65, "weight_lbs": 184.42, "bmi": 27.0, "body_fat_pct": 26.8, "body_water_pct": 50.2, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.1, "visceral_fat": 18.0, "metabolic_age": 1199163188000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.26, "ma_30d": 83.92, "change_prev_kg": -0.3, "change_from_start_kg": -2.4}, {"timestamp": "2026-09-29T06:08:54", "date": "2026-09-29", "time": "06:08:54", "weight_kg": 83.2, "weight_lbs": 183.42, "bmi": 26.9, "body_fat_pct": 26.0, "body_water_pct": 50.7, "bone_mass_kg": 3.14, "muscle_mass_kg": 58.41, "visceral_fat": 18.0, "metabolic_age": 1072935484000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.22, "ma_30d": 83.89, "change_prev_kg": -0.45, "change_from_start_kg": -2.85}, {"timestamp": "2026-09-30T06:29:53", "date": "2026-09-30", "time": "06:29:53", "weight_kg": 83.2, "weight_lbs": 183.42, "bmi": 26.9, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.63, "visceral_fat": 18.0, "metabolic_age": 1262277040000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.28, "ma_30d": 83.86, "change_prev_kg": 0.0, "change_from_start_kg": -2.85}, {"timestamp": "2026-10-01T05:50:43", "date": "2026-10-01", "time": "05:50:43", "weight_kg": 82.4, "weight_lbs": 181.66, "bmi": 26.6, "body_fat_pct": 26.9, "body_water_pct": 50.2, "bone_mass_kg": 3.07, "muscle_mass_kg": 57.19, "visceral_fat": 18.0, "metabolic_age": 1293833966000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.25, "ma_30d": 83.8, "change_prev_kg": -0.8, "change_from_start_kg": -3.65}, {"timestamp": "2026-10-02T05:51:29", "date": "2026-10-02", "time": "05:51:29", "weight_kg": 82.9, "weight_lbs": 182.76, "bmi": 26.8, "body_fat_pct": 26.2, "body_water_pct": 50.6, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.06, "visceral_fat": 18.0, "metabolic_age": 1136049336000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.2, "ma_30d": 83.77, "change_prev_kg": 0.5, "change_from_start_kg": -3.15}, {"timestamp": "2026-10-03T06:06:44", "date": "2026-10-03", "time": "06:06:44", "weight_kg": 82.65, "weight_lbs": 182.21, "bmi": 26.7, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.07, "muscle_mass_kg": 57.29, "visceral_fat": 18.0, "metabolic_age": 1293833966000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.14, "ma_30d": 83.72, "change_prev_kg": -0.25, "change_from_start_kg": -3.4}, {"timestamp": "2026-10-04T08:16:24", "date": "2026-10-04", "time": "08:16:24", "weight_kg": 82.0, "weight_lbs": 180.78, "bmi": 26.5, "body_fat_pct": 26.6, "body_water_pct": 50.4, "bone_mass_kg": 3.07, "muscle_mass_kg": 57.13, "visceral_fat": 18.0, "metabolic_age": 1262277040000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 82.86, "ma_30d": 83.66, "change_prev_kg": -0.65, "change_from_start_kg": -4.05}, {"timestamp": "2026-10-05T06:05:53", "date": "2026-10-05", "time": "06:05:53", "weight_kg": 82.8, "weight_lbs": 182.54, "bmi": 26.7, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.08, "muscle_mass_kg": 57.37, "visceral_fat": 18.0, "metabolic_age": 1293833966000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 82.74, "ma_30d": 83.63, "change_prev_kg": 0.8, "change_from_start_kg": -3.25}, {"timestamp": "2026-10-06T05:50:18", "date": "2026-10-06", "time": "05:50:18", "weight_kg": 82.5, "weight_lbs": 181.88, "bmi": 26.6, "body_fat_pct": 26.5, "body_water_pct": 50.4, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.55, "visceral_fat": 18.0, "metabolic_age": 1199163188000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 82.64, "ma_30d": 83.6, "change_prev_kg": -0.3, "change_from_start_kg": -3.55}];
-    const SUMMARY = {"has_data": true, "last_updated": "2026-10-06 12:08:01 UTC", "total_entries": 30, "start_date": "2026-09-07", "latest_date": "2026-10-06", "latest_time": "05:50:18", "current_weight_kg": 82.5, "current_weight_lbs": 181.88, "current_bmi": 26.6, "current_body_fat": 26.5, "current_muscle_mass": 57.55, "current_body_water": 50.4, "ma_7d": 82.64, "ma_30d": 83.6, "total_change_kg": -3.55, "change_7d_kg": -0.7, "change_30d_kg": -3.55, "min_weight_kg": 82.0, "max_weight_kg": 86.05, "avg_weight_kg": 83.6, "target": null};
+    const EMBEDDED_PAYLOAD = {"encrypted": true, "salt": "b0E9AdDnOeH6idvgKSD4SA==", "iv": "Nucmy/oRY0D90WBg", "ciphertext": "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"};
+    const IS_ENCRYPTED = true;
 
+    let RAW_DATA = [];
+    let SUMMARY = {};
     let currentUnit = 'kg';
     let currentTimeRange = 'all';
     let weightChartInstance = null;
     let compChartInstance = null;
     let weekdayChartInstance = null;
+
+    function togglePasswordVisibility() {
+      const input = document.getElementById('passwordInput');
+      const icon = document.getElementById('eyeIcon');
+      if (input.type === 'password') {
+        input.type = 'text';
+      } else {
+        input.type = 'password';
+      }
+    }
+
+    async function decryptData(encryptedObj, password) {
+      const enc = new TextEncoder();
+      const salt = Uint8Array.from(atob(encryptedObj.salt), c => c.charCodeAt(0));
+      const iv = Uint8Array.from(atob(encryptedObj.iv), c => c.charCodeAt(0));
+      const ciphertext = Uint8Array.from(atob(encryptedObj.ciphertext), c => c.charCodeAt(0));
+
+      const keyMaterial = await window.crypto.subtle.importKey(
+        "raw",
+        enc.encode(password),
+        { name: "PBKDF2" },
+        false,
+        ["deriveKey"]
+      );
+
+      const key = await window.crypto.subtle.deriveKey(
+        {
+          name: "PBKDF2",
+          salt: salt,
+          iterations: 100000,
+          hash: "SHA-256"
+        },
+        keyMaterial,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["decrypt"]
+      );
+
+      const decrypted = await window.crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: iv },
+        key,
+        ciphertext
+      );
+
+      const dec = new TextDecoder();
+      return JSON.parse(dec.decode(decrypted));
+    }
+
+    async function handleUnlock(e) {
+      if (e) e.preventDefault();
+      const pwd = document.getElementById('passwordInput').value;
+      const remember = document.getElementById('rememberMeCheckbox').checked;
+      const errEl = document.getElementById('unlockError');
+      const btn = document.getElementById('unlockBtn');
+
+      errEl.classList.add('hidden');
+      btn.disabled = true;
+      btn.innerHTML = `<span>Verifica in corso...</span>`;
+
+      try {
+        let payload;
+        if (IS_ENCRYPTED) {
+          payload = await decryptData(EMBEDDED_PAYLOAD, pwd);
+        } else {
+          payload = EMBEDDED_PAYLOAD.data;
+        }
+
+        RAW_DATA = payload.entries || [];
+        SUMMARY = payload.summary || {};
+
+        if (remember) {
+          localStorage.setItem('my_weight_auth_token', pwd);
+        } else {
+          sessionStorage.setItem('my_weight_auth_token', pwd);
+        }
+
+        revealDashboard();
+      } catch (err) {
+        console.error("Decryption failed:", err);
+        errEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.innerHTML = `<span>Sblocca Dashboard</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+        lucide.createIcons();
+      }
+    }
+
+    function revealDashboard() {
+      const lockScreen = document.getElementById('lockScreen');
+      const dashboard = document.getElementById('dashboardContent');
+      lockScreen.classList.add('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        lockScreen.classList.add('hidden');
+        dashboard.classList.remove('opacity-0');
+        updateStats();
+        renderCharts();
+        renderTable();
+        lucide.createIcons();
+      }, 300);
+    }
+
+    function lockDashboard() {
+      localStorage.removeItem('my_weight_auth_token');
+      sessionStorage.removeItem('my_weight_auth_token');
+      window.location.reload();
+    }
 
     function formatDelta(val, unit) {
       if (val === null || val === undefined || isNaN(val)) return '--';
@@ -307,8 +471,8 @@
         const btn = document.getElementById('btnRange' + (r === 'all' ? 'All' : r));
         if (btn) {
           btn.className = (r === range)
-            ? 'px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition'
-            : 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition';
+            ? 'px-2.5 sm:px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition'
+            : 'px-2.5 sm:px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition';
         }
       });
       renderMainChart();
@@ -382,7 +546,7 @@
           labels: labels,
           datasets: [
             {
-              label: `Daily Weight (${currentUnit})`,
+              label: `Peso Giornaliero (${currentUnit})`,
               data: weights,
               borderColor: '#818cf8',
               backgroundColor: gradient,
@@ -395,7 +559,7 @@
               pointRadius: filtered.length > 60 ? 2 : 4,
             },
             {
-              label: `7-Day Moving Avg`,
+              label: `Media 7 Giorni`,
               data: ma7,
               borderColor: '#38bdf8',
               borderWidth: 2,
@@ -405,7 +569,7 @@
               pointRadius: 0,
             },
             {
-              label: `30-Day Moving Avg`,
+              label: `Media 30 Giorni`,
               data: ma30,
               borderColor: '#34d399',
               borderWidth: 2,
@@ -439,18 +603,13 @@
               bodyColor: '#cbd5e1',
               borderColor: '#334155',
               borderWidth: 1,
-              padding: 12,
-              callbacks: {
-                label: function(context) {
-                  return `${context.dataset.label}: ${context.parsed.y ? context.parsed.y.toFixed(2) : '--'} ${currentUnit}`;
-                }
-              }
+              padding: 12
             }
           },
           scales: {
             x: {
               grid: { color: 'rgba(255, 255, 255, 0.05)' },
-              ticks: { color: '#64748b', maxTicksLimit: 12 }
+              ticks: { color: '#64748b', maxTicksLimit: 8 }
             },
             y: {
               grid: { color: 'rgba(255, 255, 255, 0.05)' },
@@ -481,7 +640,7 @@
           labels: labels,
           datasets: [
             {
-              label: 'Body Fat %',
+              label: 'Grasso Corporeo %',
               data: fat,
               borderColor: '#c084fc',
               backgroundColor: 'rgba(192, 132, 252, 0.1)',
@@ -491,7 +650,7 @@
               yAxisID: 'y'
             },
             {
-              label: 'Body Water %',
+              label: 'Acqua Corporea %',
               data: water,
               borderColor: '#22d3ee',
               backgroundColor: 'transparent',
@@ -509,7 +668,7 @@
             legend: { labels: { color: '#94a3b8', boxWidth: 12, usePointStyle: true } }
           },
           scales: {
-            x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#64748b', maxTicksLimit: 8 } },
+            x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#64748b', maxTicksLimit: 6 } },
             y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#64748b', callback: (v) => `${v}%` } }
           }
         }
@@ -518,14 +677,14 @@
 
     function renderWeekdayChart() {
       const ctx = document.getElementById('weekdayChart').getContext('2d');
-      const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const weekdays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
       const sums = [0,0,0,0,0,0,0];
       const counts = [0,0,0,0,0,0,0];
       const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
 
       RAW_DATA.forEach(d => {
         const dt = new Date(d.date);
-        let day = dt.getDay() - 1; // 0=Mon, 6=Sun
+        let day = dt.getDay() - 1;
         if (day === -1) day = 6;
         if (d.weight_kg) {
           sums[day] += (d.weight_kg * mult);
@@ -542,7 +701,7 @@
         data: {
           labels: weekdays,
           datasets: [{
-            label: `Avg Weight by Day (${currentUnit})`,
+            label: `Media per Giorno (${currentUnit})`,
             data: avgs,
             backgroundColor: 'rgba(56, 189, 248, 0.6)',
             borderColor: '#38bdf8',
@@ -592,14 +751,14 @@
         const muscleVal = row.muscle_mass_kg ? `${(row.muscle_mass_kg * mult).toFixed(1)} ${currentUnit}` : '--';
 
         tr.innerHTML = `
-          <td class="py-3 px-4 font-medium text-white">${row.date}</td>
-          <td class="py-3 px-4 text-slate-400">${row.time || '--'}</td>
-          <td class="py-3 px-4 font-bold text-indigo-400">${wVal} ${currentUnit}</td>
-          <td class="py-3 px-4">${formatDelta(diffVal, currentUnit)}</td>
-          <td class="py-3 px-4 text-slate-300">${ma7Val} ${currentUnit}</td>
-          <td class="py-3 px-4 text-slate-300">${row.bmi ? row.bmi.toFixed(1) : '--'}</td>
-          <td class="py-3 px-4 text-purple-400 font-medium">${row.body_fat_pct ? row.body_fat_pct + '%' : '--'}</td>
-          <td class="py-3 px-4 text-slate-300">${muscleVal}</td>
+          <td class="py-2.5 px-3 font-medium text-white">${row.date}</td>
+          <td class="py-2.5 px-3 text-slate-400">${row.time || '--'}</td>
+          <td class="py-2.5 px-3 font-bold text-indigo-400">${wVal} ${currentUnit}</td>
+          <td class="py-2.5 px-3">${formatDelta(diffVal, currentUnit)}</td>
+          <td class="py-2.5 px-3 text-slate-300">${ma7Val} ${currentUnit}</td>
+          <td class="py-2.5 px-3 text-slate-300">${row.bmi ? row.bmi.toFixed(1) : '--'}</td>
+          <td class="py-2.5 px-3 text-purple-400 font-medium">${row.body_fat_pct ? row.body_fat_pct + '%' : '--'}</td>
+          <td class="py-2.5 px-3 text-slate-300">${muscleVal}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -607,9 +766,16 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
-      updateStats();
-      renderCharts();
-      renderTable();
+      
+      const savedToken = localStorage.getItem('my_weight_auth_token') || sessionStorage.getItem('my_weight_auth_token');
+      if (savedToken) {
+        document.getElementById('passwordInput').value = savedToken;
+        handleUnlock();
+      } else if (!IS_ENCRYPTED) {
+        RAW_DATA = EMBEDDED_PAYLOAD.data.entries || [];
+        SUMMARY = EMBEDDED_PAYLOAD.data.summary || {};
+        revealDashboard();
+      }
     });
   </script>
 </body>

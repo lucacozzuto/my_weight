@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Fetch weight and body composition data from Garmin Connect and update the GitHub Pages dashboard.
-Zero-dependency data processing (pure Python standard library + garminconnect).
+Fetch weight and body composition data from Garmin Connect and update the dashboard.
+Supports optional military-grade AES-256-GCM client-side encryption with password protection.
 """
 
 import os
 import sys
 import json
 import csv
-import math
+import base64
 import argparse
 from datetime import datetime, date, timedelta
 from pathlib import Path
@@ -28,10 +28,7 @@ def get_default_start_date() -> str:
 
 
 def parse_weight_entry(raw_entry: dict) -> dict:
-    """
-    Standardize a single raw entry from Garmin Connect body composition response.
-    Garmin typically returns weight in grams (e.g. 75200.0) or kg.
-    """
+    """Standardize a single raw entry from Garmin Connect body composition response."""
     raw_date = (
         raw_entry.get("calendarDate")
         or raw_entry.get("date")
@@ -117,14 +114,11 @@ def parse_weight_entry(raw_entry: dict) -> dict:
 
 def decode_tokens_env() -> str | None:
     """Safely extract token JSON from environment variable (base64 or raw JSON)."""
-    import base64
     raw = (os.environ.get("GARMIN_TOKENS_BASE64") or os.environ.get("GARMINTOKENS") or "").strip()
     if not raw:
         return None
-    # If already raw JSON string
     if raw.startswith("{") and raw.endswith("}"):
         return raw
-    # Attempt base64 decoding with padding fix
     try:
         b64 = raw
         missing = len(b64) % 4
@@ -225,10 +219,7 @@ def load_existing_data() -> list:
 
 
 def merge_and_process_data(existing_entries: list, new_entries: list) -> list:
-    """
-    Merge new entries with existing entries, deduplicate by (date, time) or timestamp,
-    sort chronologically, and calculate rolling averages & deltas without external libraries.
-    """
+    """Merge new entries with existing entries, deduplicate, calculate moving averages & deltas."""
     combined = {}
     for entry in existing_entries + new_entries:
         if not entry or not isinstance(entry, dict):
@@ -252,7 +243,6 @@ def merge_and_process_data(existing_entries: list, new_entries: list) -> list:
         key=lambda x: (x.get("date", ""), x.get("time", "") or x.get("timestamp", ""))
     )
 
-    # Calculate rolling averages & deltas
     processed = []
     first_weight = None
 
@@ -264,7 +254,7 @@ def merge_and_process_data(existing_entries: list, new_entries: list) -> list:
         if first_weight is None:
             first_weight = w
 
-        # 7-day rolling average (based on up to 7 previous data points)
+        # 7-day rolling average
         start_7 = max(0, idx - 6)
         window_7 = [e["weight_kg"] for e in sorted_entries[start_7:idx + 1] if e.get("weight_kg") is not None]
         ma_7d = round(sum(window_7) / len(window_7), 2) if window_7 else w
@@ -296,12 +286,10 @@ def save_data(entries: list):
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Save to data/weight_history.json
     with open(JSON_DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(entries, f, indent=2)
     print(f"Saved {len(entries)} records to {JSON_DATA_FILE}")
 
-    # Save to data/weight_history.csv
     if entries:
         headers = [
             "date", "time", "timestamp", "weight_kg", "weight_lbs", "ma_7d", "ma_30d",
@@ -316,56 +304,13 @@ def save_data(entries: list):
                 writer.writerow(r)
         print(f"Saved CSV export to {CSV_DATA_FILE}")
 
-    # Also copy JSON to docs/data.json for static site access
     docs_json = DOCS_DIR / "data.json"
     with open(docs_json, "w", encoding="utf-8") as f:
         json.dump(entries, f, indent=2)
 
 
-def generate_mock_data(start_date_str: str) -> list:
-    """Generate realistic mock data starting from September for testing and initial dashboard view."""
-    import random
-    start_dt = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-    end_dt = date.today()
-    
-    entries = []
-    base_weight = 78.5
-    current_weight = base_weight
-    
-    curr = start_dt
-    while curr <= end_dt:
-        drift = -0.04
-        daily_variation = random.uniform(-0.35, 0.3)
-        current_weight = max(65.0, round(current_weight + drift + daily_variation, 2))
-        
-        body_fat = round(19.5 + (current_weight - 75.0) * 0.4 + random.uniform(-0.3, 0.3), 1)
-        muscle_mass = round(current_weight * 0.43 + random.uniform(-0.2, 0.2), 2)
-        body_water = round(56.0 - (body_fat - 18.0) * 0.5 + random.uniform(-0.4, 0.4), 1)
-        bmi = round(current_weight / (1.78 ** 2), 1)
-
-        entries.append({
-            "timestamp": f"{curr.isoformat()}T07:{random.randint(45, 59):02d}:00",
-            "date": curr.strftime("%Y-%m-%d"),
-            "time": f"07:{random.randint(45, 59):02d}:00",
-            "weight_kg": current_weight,
-            "weight_lbs": round(current_weight * 2.20462, 2),
-            "bmi": bmi,
-            "body_fat_pct": max(10.0, body_fat),
-            "body_water_pct": max(40.0, body_water),
-            "bone_mass_kg": 3.2,
-            "muscle_mass_kg": muscle_mass,
-            "visceral_fat": 6.0,
-            "metabolic_age": 28,
-            "physique_rating": 5,
-            "source": "mock_generator"
-        })
-        curr += timedelta(days=1)
-        
-    return entries
-
-
 def compute_summary_stats(entries: list, target_weight_kg: float = None) -> dict:
-    """Compute high-level summary metrics for the dashboard header cards."""
+    """Compute high-level summary metrics for dashboard cards."""
     if not entries:
         return {
             "has_data": False,
@@ -433,21 +378,63 @@ def compute_summary_stats(entries: list, target_weight_kg: float = None) -> dict
     }
 
 
-def build_dashboard_html(entries: list, summary: dict):
-    """Generate modern, responsive HTML dashboard in docs/index.html with embedded data."""
+def encrypt_payload(data: dict, password: str) -> dict:
+    """Encrypt payload using AES-GCM-256 and PBKDF2 with 100,000 iterations."""
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+    from cryptography.hazmat.primitives import hashes
+
+    salt = os.urandom(16)
+    iv = os.urandom(12)
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=100000,
+    )
+    key = kdf.derive(password.encode("utf-8"))
+    aesgcm = AESGCM(key)
+    plaintext = json.dumps(data).encode("utf-8")
+    ciphertext = aesgcm.encrypt(iv, plaintext, None)
+
+    return {
+        "encrypted": True,
+        "salt": base64.b64encode(salt).decode("utf-8"),
+        "iv": base64.b64encode(iv).decode("utf-8"),
+        "ciphertext": base64.b64encode(ciphertext).decode("utf-8"),
+    }
+
+
+def build_dashboard_html(entries: list, summary: dict, password: str | None = None):
+    """Generate modern, responsive HTML dashboard in docs/index.html with optional encryption."""
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
     index_file = DOCS_DIR / "index.html"
 
-    entries_json = json.dumps(entries)
-    summary_json = json.dumps(summary)
+    payload = {
+        "entries": entries,
+        "summary": summary
+    }
+
+    if password and password.strip():
+        print("🔐 Encrypting dashboard data with AES-256-GCM...")
+        encrypted_data = encrypt_payload(payload, password.strip())
+        is_encrypted_js = "true"
+        embedded_json = json.dumps(encrypted_data)
+    else:
+        is_encrypted_js = "false"
+        embedded_json = json.dumps({"encrypted": False, "data": payload})
 
     html_content = f"""<!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="it" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Garmin Weight & Body Composition Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Garmin Weight & Health Analytics</title>
   
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/lucacozzuto/my_weight/main/docs/icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -475,9 +462,7 @@ def build_dashboard_html(entries: list, summary: dict):
     }}
   </script>
   
-  <!-- Chart.js and date-fns adapter -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
 
   <style>
@@ -486,239 +471,401 @@ def build_dashboard_html(entries: list, summary: dict):
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }}
     .glass-card {{
-      background: rgba(30, 41, 59, 0.7);
+      background: rgba(30, 41, 59, 0.75);
       backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.08);
     }}
   </style>
 </head>
-<body class="bg-surface-950 text-slate-100 min-h-screen transition-colors duration-200">
+<body class="bg-surface-950 text-slate-100 min-h-screen transition-colors duration-200 antialiased">
   
-  <!-- Top Navigation Bar -->
-  <header class="border-b border-slate-800 bg-surface-900/80 sticky top-0 z-50 backdrop-blur-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-          <i data-lucide="scale" class="w-5 h-5 text-white"></i>
-        </div>
-        <div>
-          <h1 class="font-bold text-lg text-white leading-tight">Weight & Health Analytics</h1>
-          <p class="text-xs text-slate-400">Garmin Connect Auto-Sync</p>
-        </div>
+  <!-- LOCK SCREEN MODAL (When Encrypted) -->
+  <div id="lockScreen" class="fixed inset-0 z-[100] flex items-center justify-center bg-surface-950/95 backdrop-blur-xl p-4 transition-all duration-300">
+    <div class="glass-card w-full max-w-md p-8 rounded-3xl shadow-2xl border border-slate-700/60 text-center space-y-6">
+      
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+        <i data-lucide="lock" class="w-8 h-8 text-white"></i>
       </div>
 
-      <div class="flex items-center space-x-3">
-        <!-- Unit Toggle -->
-        <div class="bg-slate-800 p-1 rounded-lg flex items-center border border-slate-700 text-xs font-semibold">
-          <button id="btnKg" onclick="setUnit('kg')" class="px-2.5 py-1 rounded-md bg-indigo-600 text-white transition">kg</button>
-          <button id="btnLbs" onclick="setUnit('lbs')" class="px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition">lbs</button>
+      <div>
+        <h2 class="text-2xl font-extrabold text-white">Area Protetta</h2>
+        <p class="text-sm text-slate-400 mt-1">Inserisci la password per visualizzare i tuoi dati Garmin</p>
+      </div>
+
+      <form id="unlockForm" onsubmit="handleUnlock(event)" class="space-y-4">
+        <div class="relative text-left">
+          <input 
+            type="password" 
+            id="passwordInput" 
+            placeholder="Password di sblocco" 
+            required
+            autocomplete="current-password"
+            class="w-full px-4 py-3.5 rounded-xl bg-slate-900/90 border border-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-white placeholder-slate-500 outline-none transition"
+          />
+          <button 
+            type="button" 
+            onclick="togglePasswordVisibility()" 
+            class="absolute right-3.5 top-3.5 text-slate-400 hover:text-white"
+          >
+            <i data-lucide="eye" id="eyeIcon" class="w-5 h-5"></i>
+          </button>
         </div>
 
-        <!-- Refresh indicator -->
-        <div class="hidden sm:flex items-center text-xs text-slate-400 bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-lg space-x-2">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>Updated: <span id="lastUpdatedHeader">{summary.get('last_updated', 'Recently')}</span></span>
+        <div class="flex items-center justify-between text-xs text-slate-400 px-1">
+          <label class="flex items-center space-x-2 cursor-pointer select-none">
+            <input type="checkbox" id="rememberMeCheckbox" checked class="rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-indigo-500" />
+            <span>Ricorda su questo dispositivo</span>
+          </label>
         </div>
-      </div>
+
+        <div id="unlockError" class="text-xs text-rose-400 hidden font-medium">
+          Password errata. Riprova.
+        </div>
+
+        <button 
+          type="submit" 
+          id="unlockBtn"
+          class="w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-2"
+        >
+          <span>Sblocca Dashboard</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </form>
+
+      <p class="text-xs text-slate-500">Cifratura AES-256 &bull; Dati memorizzati in forma protetta</p>
     </div>
-  </header>
+  </div>
 
-  <!-- Main Container -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <!-- DASHBOARD WRAPPER -->
+  <div id="dashboardContent" class="opacity-0 transition-opacity duration-300">
     
-    <!-- Metric Stat Cards Grid -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+    <!-- Top Navigation Bar -->
+    <header class="border-b border-slate-800 bg-surface-900/80 sticky top-0 z-50 backdrop-blur-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <i data-lucide="scale" class="w-5 h-5 text-white"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-base sm:text-lg text-white leading-tight">Weight Analytics</h1>
+            <p class="text-xs text-slate-400">Garmin Connect</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          <!-- Unit Toggle -->
+          <div class="bg-slate-800 p-1 rounded-lg flex items-center border border-slate-700 text-xs font-semibold">
+            <button id="btnKg" onclick="setUnit('kg')" class="px-2.5 py-1 rounded-md bg-indigo-600 text-white transition">kg</button>
+            <button id="btnLbs" onclick="setUnit('lbs')" class="px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition">lbs</button>
+          </div>
+
+          <!-- Lock / Logout button -->
+          <button onclick="lockDashboard()" title="Blocca Dashboard" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition">
+            <i data-lucide="lock" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
       
-      <!-- Current Weight Card -->
-      <div class="glass-card rounded-2xl p-5 shadow-sm hover:border-indigo-500/40 transition">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Current Weight</span>
-          <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg">
-            <i data-lucide="activity" class="w-4 h-4"></i>
+      <!-- Metric Stat Cards Grid -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        
+        <!-- Current Weight Card -->
+        <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Peso Attuale</span>
+            <div class="p-1.5 bg-indigo-500/10 text-indigo-400 rounded-lg">
+              <i data-lucide="activity" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-2 sm:mt-3 flex items-baseline space-x-2">
+            <span id="statCurrentWeight" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">--</span>
+            <span id="statUnit1" class="text-xs sm:text-sm font-medium text-slate-400">kg</span>
+          </div>
+          <div class="mt-2 flex items-center text-xs space-x-1">
+            <span class="text-slate-400">Da inizio:</span>
+            <span id="statTotalChange" class="font-semibold">--</span>
           </div>
         </div>
-        <div class="mt-3 flex items-baseline space-x-2">
-          <span id="statCurrentWeight" class="text-3xl font-extrabold tracking-tight text-white">--</span>
-          <span id="statUnit1" class="text-sm font-medium text-slate-400">kg</span>
+
+        <!-- 7-Day Trend Card -->
+        <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Media 7 Giorni</span>
+            <div class="p-1.5 bg-cyan-500/10 text-cyan-400 rounded-lg">
+              <i data-lucide="trending-down" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-2 sm:mt-3 flex items-baseline space-x-2">
+            <span id="stat7dAvg" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">--</span>
+            <span id="statUnit2" class="text-xs sm:text-sm font-medium text-slate-400">kg</span>
+          </div>
+          <div class="mt-2 flex items-center text-xs space-x-1">
+            <span class="text-slate-400">Delta 7g:</span>
+            <span id="stat7dChange" class="font-semibold">--</span>
+          </div>
         </div>
-        <div class="mt-2 flex items-center text-xs space-x-1" id="badgeTotalChange">
-          <span class="text-slate-400">Since start:</span>
-          <span id="statTotalChange" class="font-semibold">--</span>
+
+        <!-- 30-Day Trend Card -->
+        <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Delta 30 Giorni</span>
+            <div class="p-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg">
+              <i data-lucide="calendar" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-2 sm:mt-3 flex items-baseline space-x-2">
+            <span id="stat30dChange" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">--</span>
+            <span id="statUnit3" class="text-xs sm:text-sm font-medium text-slate-400">kg</span>
+          </div>
+          <div class="mt-2 flex items-center text-xs space-x-1">
+            <span class="text-slate-400">Min/Max:</span>
+            <span id="statMinMax" class="text-slate-300 font-medium">--</span>
+          </div>
         </div>
+
+        <!-- Body Composition / BMI Card -->
+        <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Composizione</span>
+            <div class="p-1.5 bg-purple-500/10 text-purple-400 rounded-lg">
+              <i data-lucide="heart-pulse" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-2 sm:mt-3 flex items-baseline space-x-3">
+            <div>
+              <span class="text-[10px] text-slate-400 block">BMI</span>
+              <span id="statBMI" class="text-xl sm:text-2xl font-bold text-white">--</span>
+            </div>
+            <div class="border-l border-slate-700 pl-3">
+              <span class="text-[10px] text-slate-400 block">Grasso</span>
+              <span id="statBodyFat" class="text-xl sm:text-2xl font-bold text-white">--</span>
+            </div>
+          </div>
+          <div class="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
+            <span>Muscolo: <span id="statMuscle" class="text-slate-200 font-semibold">--</span></span>
+            <span>Acqua: <span id="statWater" class="text-slate-200 font-semibold">--</span></span>
+          </div>
+        </div>
+
       </div>
 
-      <!-- 7-Day Trend Card -->
-      <div class="glass-card rounded-2xl p-5 shadow-sm hover:border-indigo-500/40 transition">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">7-Day Moving Avg</span>
-          <div class="p-2 bg-cyan-500/10 text-cyan-400 rounded-lg">
-            <i data-lucide="trending-down" class="w-4 h-4"></i>
-          </div>
-        </div>
-        <div class="mt-3 flex items-baseline space-x-2">
-          <span id="stat7dAvg" class="text-3xl font-extrabold tracking-tight text-white">--</span>
-          <span id="statUnit2" class="text-sm font-medium text-slate-400">kg</span>
-        </div>
-        <div class="mt-2 flex items-center text-xs space-x-1">
-          <span class="text-slate-400">7-Day Delta:</span>
-          <span id="stat7dChange" class="font-semibold">--</span>
-        </div>
-      </div>
-
-      <!-- 30-Day Trend Card -->
-      <div class="glass-card rounded-2xl p-5 shadow-sm hover:border-indigo-500/40 transition">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">30-Day Change</span>
-          <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg">
-            <i data-lucide="calendar" class="w-4 h-4"></i>
-          </div>
-        </div>
-        <div class="mt-3 flex items-baseline space-x-2">
-          <span id="stat30dChange" class="text-3xl font-extrabold tracking-tight text-white">--</span>
-          <span id="statUnit3" class="text-sm font-medium text-slate-400">kg</span>
-        </div>
-        <div class="mt-2 flex items-center text-xs space-x-1">
-          <span class="text-slate-400">Range:</span>
-          <span id="statMinMax" class="text-slate-300 font-medium">--</span>
-        </div>
-      </div>
-
-      <!-- Body Composition / BMI Card -->
-      <div class="glass-card rounded-2xl p-5 shadow-sm hover:border-indigo-500/40 transition">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Body Stats</span>
-          <div class="p-2 bg-purple-500/10 text-purple-400 rounded-lg">
-            <i data-lucide="heart-pulse" class="w-4 h-4"></i>
-          </div>
-        </div>
-        <div class="mt-3 flex items-baseline space-x-3">
+      <!-- Main Chart Section -->
+      <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 sm:pb-6 border-b border-slate-800">
           <div>
-            <span class="text-xs text-slate-400 block">BMI</span>
-            <span id="statBMI" class="text-2xl font-bold text-white">--</span>
+            <h2 class="text-base sm:text-lg font-bold text-white">Progressione del Peso & Medie Mobili</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Misurazioni mattutine e linea di tendenza</p>
           </div>
-          <div class="border-l border-slate-700 pl-3">
-            <span class="text-xs text-slate-400 block">Body Fat</span>
-            <span id="statBodyFat" class="text-2xl font-bold text-white">--</span>
+
+          <!-- Time Range Filters -->
+          <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-medium space-x-1 self-start sm:self-auto">
+            <button onclick="setTimeRange('7d')" id="btnRange7d" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">7G</button>
+            <button onclick="setTimeRange('30d')" id="btnRange30d" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">30G</button>
+            <button onclick="setTimeRange('90d')" id="btnRange90d" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">3M</button>
+            <button onclick="setTimeRange('all')" id="btnRangeAll" class="px-2.5 sm:px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition">Tutto (Settembre)</button>
           </div>
         </div>
-        <div class="mt-2 text-xs text-slate-400 flex items-center justify-between">
-          <span>Muscle: <span id="statMuscle" class="text-slate-200 font-semibold">--</span></span>
-          <span>Water: <span id="statWater" class="text-slate-200 font-semibold">--</span></span>
+
+        <div class="mt-4 sm:mt-6 relative h-[320px] sm:h-[380px] w-full">
+          <canvas id="weightChart"></canvas>
         </div>
       </div>
 
-    </div>
-
-    <!-- Main Chart Section -->
-    <div class="glass-card rounded-2xl p-6 shadow-sm">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-slate-800">
-        <div>
-          <h2 class="text-lg font-bold text-white flex items-center space-x-2">
-            <span>Weight Progression & Moving Averages</span>
-          </h2>
-          <p class="text-xs text-slate-400 mt-0.5">Tracking daily morning weigh-ins and trendline</p>
+      <!-- Secondary Charts Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div>
+              <h3 class="font-bold text-white text-sm sm:text-base">Composizione Corporea nel Tempo</h3>
+              <p class="text-xs text-slate-400">Grasso % e Acqua %</p>
+            </div>
+            <div class="p-1.5 bg-purple-500/10 text-purple-400 rounded-lg">
+              <i data-lucide="pie-chart" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-4 relative h-[240px] sm:h-[260px] w-full">
+            <canvas id="compositionChart"></canvas>
+          </div>
         </div>
 
-        <!-- Time Range Filters -->
-        <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-medium space-x-1 self-start sm:self-auto">
-          <button onclick="setTimeRange('7d')" id="btnRange7d" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">7D</button>
-          <button onclick="setTimeRange('30d')" id="btnRange30d" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">30D</button>
-          <button onclick="setTimeRange('90d')" id="btnRange90d" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">3M</button>
-          <button onclick="setTimeRange('all')" id="btnRangeAll" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition">All</button>
+        <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div>
+              <h3 class="font-bold text-white text-sm sm:text-base">Media per Giorno della Settimana</h3>
+              <p class="text-xs text-slate-400">Distribuzione delle fluttuazioni</p>
+            </div>
+            <div class="p-1.5 bg-cyan-500/10 text-cyan-400 rounded-lg">
+              <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-4 relative h-[240px] sm:h-[260px] w-full">
+            <canvas id="weekdayChart"></canvas>
+          </div>
         </div>
+
       </div>
 
-      <!-- Main Line Chart Canvas -->
-      <div class="mt-6 relative h-[380px] w-full">
-        <canvas id="weightChart"></canvas>
-      </div>
-    </div>
-
-    <!-- Secondary Charts (Body Composition & Weekly Fluctuations) -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      
-      <!-- Body Composition Chart -->
-      <div class="glass-card rounded-2xl p-6 shadow-sm">
-        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+      <!-- Data Table Section -->
+      <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
           <div>
-            <h3 class="font-bold text-white text-base">Body Composition Over Time</h3>
-            <p class="text-xs text-slate-400">Fat % and Muscle Mass trends</p>
+            <h3 class="font-bold text-white text-sm sm:text-base">Storico Pesate Recenti</h3>
+            <p class="text-xs text-slate-400">Sincronizzate da Garmin Connect</p>
           </div>
-          <div class="p-2 bg-purple-500/10 text-purple-400 rounded-lg">
-            <i data-lucide="pie-chart" class="w-4 h-4"></i>
-          </div>
+          <span class="text-xs text-slate-400" id="tableCount"></span>
         </div>
-        <div class="mt-4 relative h-[260px] w-full">
-          <canvas id="compositionChart"></canvas>
+
+        <div class="overflow-x-auto mt-4">
+          <table class="w-full text-left text-xs sm:text-sm text-slate-300 whitespace-nowrap">
+            <thead class="text-[11px] uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
+              <tr>
+                <th class="py-2.5 px-3 font-semibold">Data</th>
+                <th class="py-2.5 px-3 font-semibold">Ora</th>
+                <th class="py-2.5 px-3 font-semibold">Peso</th>
+                <th class="py-2.5 px-3 font-semibold">Diff. Giornaliera</th>
+                <th class="py-2.5 px-3 font-semibold">Media 7g</th>
+                <th class="py-2.5 px-3 font-semibold">BMI</th>
+                <th class="py-2.5 px-3 font-semibold">Grasso %</th>
+                <th class="py-2.5 px-3 font-semibold">Muscolo</th>
+              </tr>
+            </thead>
+            <tbody id="dataTableBody" class="divide-y divide-slate-800/60">
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <!-- Weekly Distribution / Daily Fluctuations -->
-      <div class="glass-card rounded-2xl p-6 shadow-sm">
-        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-          <div>
-            <h3 class="font-bold text-white text-base">Day-of-Week Patterns</h3>
-            <p class="text-xs text-slate-400">Average weigh-in comparison by weekday</p>
-          </div>
-          <div class="p-2 bg-cyan-500/10 text-cyan-400 rounded-lg">
-            <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
-          </div>
-        </div>
-        <div class="mt-4 relative h-[260px] w-full">
-          <canvas id="weekdayChart"></canvas>
-        </div>
-      </div>
+    </main>
 
-    </div>
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500">
+      <p>Garmin Connect Sync &bull; Aggiornato automaticamente ogni mattina</p>
+    </footer>
 
-    <!-- Data Table Section -->
-    <div class="glass-card rounded-2xl p-6 shadow-sm">
-      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-        <div>
-          <h3 class="font-bold text-white text-base">Recent Weigh-in Records</h3>
-          <p class="text-xs text-slate-400">Detailed logs synchronized from Garmin</p>
-        </div>
-        <span class="text-xs text-slate-400" id="tableCount">Showing recent entries</span>
-      </div>
+  </div>
 
-      <div class="overflow-x-auto mt-4">
-        <table class="w-full text-left text-sm text-slate-300">
-          <thead class="text-xs uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
-            <tr>
-              <th class="py-3 px-4 font-semibold">Date</th>
-              <th class="py-3 px-4 font-semibold">Time</th>
-              <th class="py-3 px-4 font-semibold">Weight</th>
-              <th class="py-3 px-4 font-semibold">Daily Diff</th>
-              <th class="py-3 px-4 font-semibold">7-Day Avg</th>
-              <th class="py-3 px-4 font-semibold">BMI</th>
-              <th class="py-3 px-4 font-semibold">Body Fat %</th>
-              <th class="py-3 px-4 font-semibold">Muscle Mass</th>
-            </tr>
-          </thead>
-          <tbody id="dataTableBody" class="divide-y divide-slate-800/60">
-            <!-- Populated dynamically via JS -->
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-  </main>
-
-  <!-- Footer -->
-  <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500">
-    <p>Powered by Garmin Connect API & GitHub Actions &bull; Automatically updated every morning</p>
-  </footer>
-
-  <!-- Script Logic -->
+  <!-- SCRIPT ENGINE -->
   <script>
-    const RAW_DATA = {entries_json};
-    const SUMMARY = {summary_json};
+    const EMBEDDED_PAYLOAD = {embedded_json};
+    const IS_ENCRYPTED = {is_encrypted_js};
 
+    let RAW_DATA = [];
+    let SUMMARY = {{}};
     let currentUnit = 'kg';
     let currentTimeRange = 'all';
     let weightChartInstance = null;
     let compChartInstance = null;
     let weekdayChartInstance = null;
+
+    function togglePasswordVisibility() {{
+      const input = document.getElementById('passwordInput');
+      const icon = document.getElementById('eyeIcon');
+      if (input.type === 'password') {{
+        input.type = 'text';
+      }} else {{
+        input.type = 'password';
+      }}
+    }}
+
+    async function decryptData(encryptedObj, password) {{
+      const enc = new TextEncoder();
+      const salt = Uint8Array.from(atob(encryptedObj.salt), c => c.charCodeAt(0));
+      const iv = Uint8Array.from(atob(encryptedObj.iv), c => c.charCodeAt(0));
+      const ciphertext = Uint8Array.from(atob(encryptedObj.ciphertext), c => c.charCodeAt(0));
+
+      const keyMaterial = await window.crypto.subtle.importKey(
+        "raw",
+        enc.encode(password),
+        {{ name: "PBKDF2" }},
+        false,
+        ["deriveKey"]
+      );
+
+      const key = await window.crypto.subtle.deriveKey(
+        {{
+          name: "PBKDF2",
+          salt: salt,
+          iterations: 100000,
+          hash: "SHA-256"
+        }},
+        keyMaterial,
+        {{ name: "AES-GCM", length: 256 }},
+        false,
+        ["decrypt"]
+      );
+
+      const decrypted = await window.crypto.subtle.decrypt(
+        {{ name: "AES-GCM", iv: iv }},
+        key,
+        ciphertext
+      );
+
+      const dec = new TextDecoder();
+      return JSON.parse(dec.decode(decrypted));
+    }}
+
+    async function handleUnlock(e) {{
+      if (e) e.preventDefault();
+      const pwd = document.getElementById('passwordInput').value;
+      const remember = document.getElementById('rememberMeCheckbox').checked;
+      const errEl = document.getElementById('unlockError');
+      const btn = document.getElementById('unlockBtn');
+
+      errEl.classList.add('hidden');
+      btn.disabled = true;
+      btn.innerHTML = `<span>Verifica in corso...</span>`;
+
+      try {{
+        let payload;
+        if (IS_ENCRYPTED) {{
+          payload = await decryptData(EMBEDDED_PAYLOAD, pwd);
+        }} else {{
+          payload = EMBEDDED_PAYLOAD.data;
+        }}
+
+        RAW_DATA = payload.entries || [];
+        SUMMARY = payload.summary || {{}};
+
+        if (remember) {{
+          localStorage.setItem('my_weight_auth_token', pwd);
+        }} else {{
+          sessionStorage.setItem('my_weight_auth_token', pwd);
+        }}
+
+        revealDashboard();
+      }} catch (err) {{
+        console.error("Decryption failed:", err);
+        errEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.innerHTML = `<span>Sblocca Dashboard</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+        lucide.createIcons();
+      }}
+    }}
+
+    function revealDashboard() {{
+      const lockScreen = document.getElementById('lockScreen');
+      const dashboard = document.getElementById('dashboardContent');
+      lockScreen.classList.add('opacity-0', 'pointer-events-none');
+      setTimeout(() => {{
+        lockScreen.classList.add('hidden');
+        dashboard.classList.remove('opacity-0');
+        updateStats();
+        renderCharts();
+        renderTable();
+        lucide.createIcons();
+      }}, 300);
+    }}
+
+    function lockDashboard() {{
+      localStorage.removeItem('my_weight_auth_token');
+      sessionStorage.removeItem('my_weight_auth_token');
+      window.location.reload();
+    }}
 
     function formatDelta(val, unit) {{
       if (val === null || val === undefined || isNaN(val)) return '--';
@@ -750,8 +897,8 @@ def build_dashboard_html(entries: list, summary: dict):
         const btn = document.getElementById('btnRange' + (r === 'all' ? 'All' : r));
         if (btn) {{
           btn.className = (r === range)
-            ? 'px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition'
-            : 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition';
+            ? 'px-2.5 sm:px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition'
+            : 'px-2.5 sm:px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition';
         }}
       }});
       renderMainChart();
@@ -825,7 +972,7 @@ def build_dashboard_html(entries: list, summary: dict):
           labels: labels,
           datasets: [
             {{
-              label: `Daily Weight (${{currentUnit}})`,
+              label: `Peso Giornaliero (${{currentUnit}})`,
               data: weights,
               borderColor: '#818cf8',
               backgroundColor: gradient,
@@ -838,7 +985,7 @@ def build_dashboard_html(entries: list, summary: dict):
               pointRadius: filtered.length > 60 ? 2 : 4,
             }},
             {{
-              label: `7-Day Moving Avg`,
+              label: `Media 7 Giorni`,
               data: ma7,
               borderColor: '#38bdf8',
               borderWidth: 2,
@@ -848,7 +995,7 @@ def build_dashboard_html(entries: list, summary: dict):
               pointRadius: 0,
             }},
             {{
-              label: `30-Day Moving Avg`,
+              label: `Media 30 Giorni`,
               data: ma30,
               borderColor: '#34d399',
               borderWidth: 2,
@@ -882,18 +1029,13 @@ def build_dashboard_html(entries: list, summary: dict):
               bodyColor: '#cbd5e1',
               borderColor: '#334155',
               borderWidth: 1,
-              padding: 12,
-              callbacks: {{
-                label: function(context) {{
-                  return `${{context.dataset.label}}: ${{context.parsed.y ? context.parsed.y.toFixed(2) : '--'}} ${{currentUnit}}`;
-                }}
-              }}
+              padding: 12
             }}
           }},
           scales: {{
             x: {{
               grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
-              ticks: {{ color: '#64748b', maxTicksLimit: 12 }}
+              ticks: {{ color: '#64748b', maxTicksLimit: 8 }}
             }},
             y: {{
               grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
@@ -924,7 +1066,7 @@ def build_dashboard_html(entries: list, summary: dict):
           labels: labels,
           datasets: [
             {{
-              label: 'Body Fat %',
+              label: 'Grasso Corporeo %',
               data: fat,
               borderColor: '#c084fc',
               backgroundColor: 'rgba(192, 132, 252, 0.1)',
@@ -934,7 +1076,7 @@ def build_dashboard_html(entries: list, summary: dict):
               yAxisID: 'y'
             }},
             {{
-              label: 'Body Water %',
+              label: 'Acqua Corporea %',
               data: water,
               borderColor: '#22d3ee',
               backgroundColor: 'transparent',
@@ -952,7 +1094,7 @@ def build_dashboard_html(entries: list, summary: dict):
             legend: {{ labels: {{ color: '#94a3b8', boxWidth: 12, usePointStyle: true }} }}
           }},
           scales: {{
-            x: {{ grid: {{ color: 'rgba(255, 255, 255, 0.05)' }}, ticks: {{ color: '#64748b', maxTicksLimit: 8 }} }},
+            x: {{ grid: {{ color: 'rgba(255, 255, 255, 0.05)' }}, ticks: {{ color: '#64748b', maxTicksLimit: 6 }} }},
             y: {{ grid: {{ color: 'rgba(255, 255, 255, 0.05)' }}, ticks: {{ color: '#64748b', callback: (v) => `${{v}}%` }} }}
           }}
         }}
@@ -961,14 +1103,14 @@ def build_dashboard_html(entries: list, summary: dict):
 
     function renderWeekdayChart() {{
       const ctx = document.getElementById('weekdayChart').getContext('2d');
-      const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const weekdays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
       const sums = [0,0,0,0,0,0,0];
       const counts = [0,0,0,0,0,0,0];
       const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
 
       RAW_DATA.forEach(d => {{
         const dt = new Date(d.date);
-        let day = dt.getDay() - 1; // 0=Mon, 6=Sun
+        let day = dt.getDay() - 1;
         if (day === -1) day = 6;
         if (d.weight_kg) {{
           sums[day] += (d.weight_kg * mult);
@@ -985,7 +1127,7 @@ def build_dashboard_html(entries: list, summary: dict):
         data: {{
           labels: weekdays,
           datasets: [{{
-            label: `Avg Weight by Day (${{currentUnit}})`,
+            label: `Media per Giorno (${{currentUnit}})`,
             data: avgs,
             backgroundColor: 'rgba(56, 189, 248, 0.6)',
             borderColor: '#38bdf8',
@@ -1035,14 +1177,14 @@ def build_dashboard_html(entries: list, summary: dict):
         const muscleVal = row.muscle_mass_kg ? `${{(row.muscle_mass_kg * mult).toFixed(1)}} ${{currentUnit}}` : '--';
 
         tr.innerHTML = `
-          <td class="py-3 px-4 font-medium text-white">${{row.date}}</td>
-          <td class="py-3 px-4 text-slate-400">${{row.time || '--'}}</td>
-          <td class="py-3 px-4 font-bold text-indigo-400">${{wVal}} ${{currentUnit}}</td>
-          <td class="py-3 px-4">${{formatDelta(diffVal, currentUnit)}}</td>
-          <td class="py-3 px-4 text-slate-300">${{ma7Val}} ${{currentUnit}}</td>
-          <td class="py-3 px-4 text-slate-300">${{row.bmi ? row.bmi.toFixed(1) : '--'}}</td>
-          <td class="py-3 px-4 text-purple-400 font-medium">${{row.body_fat_pct ? row.body_fat_pct + '%' : '--'}}</td>
-          <td class="py-3 px-4 text-slate-300">${{muscleVal}}</td>
+          <td class="py-2.5 px-3 font-medium text-white">${{row.date}}</td>
+          <td class="py-2.5 px-3 text-slate-400">${{row.time || '--'}}</td>
+          <td class="py-2.5 px-3 font-bold text-indigo-400">${{wVal}} ${{currentUnit}}</td>
+          <td class="py-2.5 px-3">${{formatDelta(diffVal, currentUnit)}}</td>
+          <td class="py-2.5 px-3 text-slate-300">${{ma7Val}} ${{currentUnit}}</td>
+          <td class="py-2.5 px-3 text-slate-300">${{row.bmi ? row.bmi.toFixed(1) : '--'}}</td>
+          <td class="py-2.5 px-3 text-purple-400 font-medium">${{row.body_fat_pct ? row.body_fat_pct + '%' : '--'}}</td>
+          <td class="py-2.5 px-3 text-slate-300">${{muscleVal}}</td>
         `;
         tbody.appendChild(tr);
       }});
@@ -1050,9 +1192,16 @@ def build_dashboard_html(entries: list, summary: dict):
 
     document.addEventListener('DOMContentLoaded', () => {{
       lucide.createIcons();
-      updateStats();
-      renderCharts();
-      renderTable();
+      
+      const savedToken = localStorage.getItem('my_weight_auth_token') || sessionStorage.getItem('my_weight_auth_token');
+      if (savedToken) {{
+        document.getElementById('passwordInput').value = savedToken;
+        handleUnlock();
+      }} else if (!IS_ENCRYPTED) {{
+        RAW_DATA = EMBEDDED_PAYLOAD.data.entries || [];
+        SUMMARY = EMBEDDED_PAYLOAD.data.summary || {{}};
+        revealDashboard();
+      }}
     }});
   </script>
 </body>
@@ -1079,16 +1228,19 @@ def parse_target_weight_env() -> float | None:
 def main():
     default_start = os.environ.get("GARMIN_START_DATE", "").strip() or get_default_start_date()
     default_target = parse_target_weight_env()
+    dashboard_password = (os.environ.get("DASHBOARD_PASSWORD") or os.environ.get("GARMIN_DASHBOARD_PASSWORD") or "").strip() or None
 
-    parser = argparse.ArgumentParser(description="Fetch Garmin weight data and generate GitHub Pages dashboard")
+    parser = argparse.ArgumentParser(description="Fetch Garmin weight data and generate protected dashboard")
     parser.add_argument("--start-date", default=default_start,
                         help="Start date YYYY-MM-DD (defaults to Sep 1st this year)")
     parser.add_argument("--end-date", default=date.today().strftime("%Y-%m-%d"),
                         help="End date YYYY-MM-DD (defaults to today)")
     parser.add_argument("--target-weight", type=float, default=default_target,
                         help="Target weight goal in kg (optional)")
+    parser.add_argument("--password", default=dashboard_password,
+                        help="Password to encrypt the dashboard payload")
     parser.add_argument("--mock", action="store_true",
-                        help="Generate synthetic mock data from September (for testing without Garmin credentials)")
+                        help="Generate synthetic mock data")
     args = parser.parse_args()
 
     email = os.environ.get("GARMIN_EMAIL", "").strip() or None
@@ -1097,18 +1249,9 @@ def main():
     existing_data = load_existing_data()
     print(f"Loaded {len(existing_data)} existing records.")
 
-    if args.mock or not (email and password):
-        if not (email and password) and not args.mock:
-            print("Notice: GARMIN_EMAIL or GARMIN_PASSWORD not set.")
-            if not existing_data:
-                print("No existing data found. Generating mock data from September so dashboard can be previewed...")
-                new_data = generate_mock_data(args.start_date)
-            else:
-                print("Using existing data to refresh dashboard.")
-                new_data = []
-        else:
-            print(f"Mock mode active: generating synthetic data starting from {args.start_date}...")
-            new_data = generate_mock_data(args.start_date)
+    if not (decode_tokens_env() or (email and password)):
+        print("Notice: No Garmin credentials or tokens provided. Refreshing dashboard from existing data.")
+        new_data = []
     else:
         new_data = fetch_from_garmin(email, password, args.start_date, args.end_date)
 
@@ -1116,8 +1259,8 @@ def main():
     save_data(processed_data)
 
     summary = compute_summary_stats(processed_data, target_weight_kg=args.target_weight)
-    build_dashboard_html(processed_data, summary)
-    print("Done! Dashboard and data are up to date.")
+    build_dashboard_html(processed_data, summary, password=args.password)
+    print("Done! Dashboard is up to date.")
 
 
 if __name__ == "__main__":
