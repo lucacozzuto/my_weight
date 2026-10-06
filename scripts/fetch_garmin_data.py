@@ -1018,20 +1018,34 @@ def build_dashboard_html(entries: list, summary: dict):
     print(f"Generated dashboard HTML at {index_file}")
 
 
+def parse_target_weight_env() -> float | None:
+    raw = os.environ.get("GARMIN_TARGET_WEIGHT", "").strip()
+    if not raw:
+        return None
+    try:
+        val = float(raw)
+        return val if val > 0 else None
+    except (ValueError, TypeError):
+        return None
+
+
 def main():
+    default_start = os.environ.get("GARMIN_START_DATE", "").strip() or get_default_start_date()
+    default_target = parse_target_weight_env()
+
     parser = argparse.ArgumentParser(description="Fetch Garmin weight data and generate GitHub Pages dashboard")
-    parser.add_argument("--start-date", default=os.environ.get("GARMIN_START_DATE", get_default_start_date()),
+    parser.add_argument("--start-date", default=default_start,
                         help="Start date YYYY-MM-DD (defaults to Sep 1st this year)")
     parser.add_argument("--end-date", default=date.today().strftime("%Y-%m-%d"),
                         help="End date YYYY-MM-DD (defaults to today)")
-    parser.add_argument("--target-weight", type=float, default=float(os.environ.get("GARMIN_TARGET_WEIGHT", 0)) or None,
+    parser.add_argument("--target-weight", type=float, default=default_target,
                         help="Target weight goal in kg (optional)")
     parser.add_argument("--mock", action="store_true",
                         help="Generate synthetic mock data from September (for testing without Garmin credentials)")
     args = parser.parse_args()
 
-    email = os.environ.get("GARMIN_EMAIL")
-    password = os.environ.get("GARMIN_PASSWORD")
+    email = os.environ.get("GARMIN_EMAIL", "").strip() or None
+    password = os.environ.get("GARMIN_PASSWORD", "").strip() or None
 
     existing_data = load_existing_data()
     print(f"Loaded {len(existing_data)} existing records.")
