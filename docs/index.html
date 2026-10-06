@@ -37,6 +37,7 @@
   </script>
   
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@sgratzl/chartjs-chart-boxplot@4.3.5/build/index.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
 
   <style>
@@ -249,6 +250,24 @@
         </div>
       </div>
 
+      <!-- Weekly Box Plot Section -->
+      <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 sm:pb-4 border-b border-slate-800">
+          <div>
+            <h3 class="font-bold text-white text-base sm:text-lg flex items-center space-x-2">
+              <span>Distribuzione Settimanale (Box Plot)</span>
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">Mediana, quartili (Q1/Q3), min/max e singole pesate per ogni settimana</p>
+          </div>
+          <span class="text-xs px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-medium self-start sm:self-auto">
+            Ultima settimana inclusa coi punti disponibili
+          </span>
+        </div>
+        <div class="mt-4 sm:mt-6 relative h-[320px] sm:h-[360px] w-full">
+          <canvas id="weeklyBoxplotChart"></canvas>
+        </div>
+      </div>
+
       <!-- Secondary Charts Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
@@ -325,8 +344,8 @@
 
   <!-- SCRIPT ENGINE -->
   <script>
-    const EMBEDDED_PAYLOAD = {"encrypted": true, "salt": "nNze6qG8qKpeV6b2erWozw==", "iv": "bcIIAvKI3Mp2cv56", "ciphertext": "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"};
-    const IS_ENCRYPTED = true;
+    const EMBEDDED_PAYLOAD = {"encrypted": false, "data": {"entries": [{"timestamp": "2026-09-07T07:37:12", "date": "2026-09-07", "time": "07:37:12", "weight_kg": 86.05, "weight_lbs": 189.71, "bmi": 27.8, "body_fat_pct": 28.6, "body_water_pct": 51.0, "bone_mass_kg": 3.13, "muscle_mass_kg": 58.31, "visceral_fat": 20.0, "metabolic_age": 1388504744000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 86.05, "ma_30d": 86.05, "change_prev_kg": 0.0, "change_from_start_kg": 0.0}, {"timestamp": "2026-09-08T06:09:22", "date": "2026-09-08", "time": "06:09:22", "weight_kg": 84.85, "weight_lbs": 187.06, "bmi": 27.4, "body_fat_pct": 27.9, "body_water_pct": 49.5, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.06, "visceral_fat": 19.0, "metabolic_age": 1325390892000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 85.45, "ma_30d": 85.45, "change_prev_kg": -1.2, "change_from_start_kg": -1.2}, {"timestamp": "2026-09-09T06:02:18", "date": "2026-09-09", "time": "06:02:18", "weight_kg": 84.85, "weight_lbs": 187.06, "bmi": 27.4, "body_fat_pct": 27.9, "body_water_pct": 49.5, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.06, "visceral_fat": 19.0, "metabolic_age": 1325390892000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 85.25, "ma_30d": 85.25, "change_prev_kg": 0.0, "change_from_start_kg": -1.2}, {"timestamp": "2026-09-10T06:06:26", "date": "2026-09-10", "time": "06:06:26", "weight_kg": 84.65, "weight_lbs": 186.62, "bmi": 27.3, "body_fat_pct": 27.3, "body_water_pct": 49.8, "bone_mass_kg": 3.13, "muscle_mass_kg": 58.37, "visceral_fat": 19.0, "metabolic_age": 1230720114000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 85.1, "ma_30d": 85.1, "change_prev_kg": -0.2, "change_from_start_kg": -1.4}, {"timestamp": "2026-09-11T08:31:47", "date": "2026-09-11", "time": "08:31:47", "weight_kg": 84.35, "weight_lbs": 185.96, "bmi": 27.2, "body_fat_pct": 28.1, "body_water_pct": 49.3, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.57, "visceral_fat": 19.0, "metabolic_age": 1420061670000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.95, "ma_30d": 84.95, "change_prev_kg": -0.3, "change_from_start_kg": -1.7}, {"timestamp": "2026-09-12T07:51:56", "date": "2026-09-12", "time": "07:51:56", "weight_kg": 84.1, "weight_lbs": 185.41, "bmi": 27.2, "body_fat_pct": 27.9, "body_water_pct": 49.4, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.52, "visceral_fat": 19.0, "metabolic_age": 1388504744000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.81, "ma_30d": 84.81, "change_prev_kg": -0.25, "change_from_start_kg": -1.95}, {"timestamp": "2026-09-13T08:38:01", "date": "2026-09-13", "time": "08:38:01", "weight_kg": 83.9, "weight_lbs": 184.97, "bmi": 27.1, "body_fat_pct": 26.1, "body_water_pct": 50.7, "bone_mass_kg": 3.16, "muscle_mass_kg": 58.87, "visceral_fat": 18.0, "metabolic_age": 1041378558000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.68, "ma_30d": 84.68, "change_prev_kg": -0.2, "change_from_start_kg": -2.15}, {"timestamp": "2026-09-14T06:03:39", "date": "2026-09-14", "time": "06:03:39", "weight_kg": 83.9, "weight_lbs": 184.97, "bmi": 27.1, "body_fat_pct": 26.0, "body_water_pct": 50.7, "bone_mass_kg": 3.16, "muscle_mass_kg": 58.89, "visceral_fat": 18.0, "metabolic_age": 1009821632000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.37, "ma_30d": 84.58, "change_prev_kg": 0.0, "change_from_start_kg": -2.15}, {"timestamp": "2026-09-15T06:01:11", "date": "2026-09-15", "time": "06:01:11", "weight_kg": 83.7, "weight_lbs": 184.53, "bmi": 27.0, "body_fat_pct": 28.3, "body_water_pct": 49.2, "bone_mass_kg": 3.05, "muscle_mass_kg": 56.92, "visceral_fat": 18.0, "metabolic_age": 1514732448000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.21, "ma_30d": 84.48, "change_prev_kg": -0.2, "change_from_start_kg": -2.35}, {"timestamp": "2026-09-16T06:01:10", "date": "2026-09-16", "time": "06:01:10", "weight_kg": 83.8, "weight_lbs": 184.75, "bmi": 27.1, "body_fat_pct": 31.0, "body_water_pct": 49.2, "bone_mass_kg": 2.94, "muscle_mass_kg": 54.84, "visceral_fat": 18.0, "metabolic_age": 2051200190000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.06, "ma_30d": 84.41, "change_prev_kg": 0.1, "change_from_start_kg": -2.25}, {"timestamp": "2026-09-17T05:38:24", "date": "2026-09-17", "time": "05:38:24", "weight_kg": 83.55, "weight_lbs": 184.2, "bmi": 27.0, "body_fat_pct": 26.2, "body_water_pct": 50.6, "bone_mass_kg": 3.14, "muscle_mass_kg": 58.49, "visceral_fat": 18.0, "metabolic_age": 1072935484000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.9, "ma_30d": 84.34, "change_prev_kg": -0.25, "change_from_start_kg": -2.5}, {"timestamp": "2026-09-18T06:01:36", "date": "2026-09-18", "time": "06:01:36", "weight_kg": 83.85, "weight_lbs": 184.86, "bmi": 27.1, "body_fat_pct": 27.5, "body_water_pct": 49.7, "bone_mass_kg": 3.1, "muscle_mass_kg": 57.69, "visceral_fat": 18.0, "metabolic_age": 1325390892000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.83, "ma_30d": 84.3, "change_prev_kg": 0.3, "change_from_start_kg": -2.2}, {"timestamp": "2026-09-19T06:50:48", "date": "2026-09-19", "time": "06:50:48", "weight_kg": 83.7, "weight_lbs": 184.53, "bmi": 27.0, "body_fat_pct": 26.3, "body_water_pct": 50.6, "bone_mass_kg": 3.14, "muscle_mass_kg": 58.54, "visceral_fat": 18.0, "metabolic_age": 1104492410000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.77, "ma_30d": 84.25, "change_prev_kg": -0.15, "change_from_start_kg": -2.35}, {"timestamp": "2026-09-20T09:14:30", "date": "2026-09-20", "time": "09:14:30", "weight_kg": 84.25, "weight_lbs": 185.74, "bmi": 27.2, "body_fat_pct": 27.4, "body_water_pct": 49.8, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.05, "visceral_fat": 19.0, "metabolic_age": 1262277040000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.82, "ma_30d": 84.25, "change_prev_kg": 0.55, "change_from_start_kg": -1.8}, {"timestamp": "2026-09-21T05:53:07", "date": "2026-09-21", "time": "05:53:07", "weight_kg": 83.9, "weight_lbs": 184.97, "bmi": 27.1, "body_fat_pct": 31.1, "body_water_pct": 49.2, "bone_mass_kg": 2.94, "muscle_mass_kg": 54.84, "visceral_fat": 18.0, "metabolic_age": 2051200190000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.82, "ma_30d": 84.23, "change_prev_kg": -0.35, "change_from_start_kg": -2.15}, {"timestamp": "2026-09-22T05:59:10", "date": "2026-09-22", "time": "05:59:10", "weight_kg": 83.45, "weight_lbs": 183.98, "bmi": 26.9, "body_fat_pct": 26.1, "body_water_pct": 50.7, "bone_mass_kg": 3.14, "muscle_mass_kg": 58.5, "visceral_fat": 18.0, "metabolic_age": 1072935484000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.79, "ma_30d": 84.18, "change_prev_kg": -0.45, "change_from_start_kg": -2.6}, {"timestamp": "2026-09-23T05:53:11", "date": "2026-09-23", "time": "05:53:11", "weight_kg": 82.8, "weight_lbs": 182.54, "bmi": 26.7, "body_fat_pct": 25.2, "body_water_pct": 51.3, "bone_mass_kg": 3.15, "muscle_mass_kg": 58.75, "visceral_fat": 18.0, "metabolic_age": 946707780000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.64, "ma_30d": 84.1, "change_prev_kg": -0.65, "change_from_start_kg": -3.25}, {"timestamp": "2026-09-24T08:40:54", "date": "2026-09-24", "time": "08:40:54", "weight_kg": 82.6, "weight_lbs": 182.1, "bmi": 26.7, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.07, "muscle_mass_kg": 57.26, "visceral_fat": 18.0, "metabolic_age": 1293833966000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.51, "ma_30d": 84.01, "change_prev_kg": -0.2, "change_from_start_kg": -3.45}, {"timestamp": "2026-09-25T05:56:34", "date": "2026-09-25", "time": "05:56:34", "weight_kg": 83.25, "weight_lbs": 183.53, "bmi": 26.9, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.65, "visceral_fat": 18.0, "metabolic_age": 1262277040000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.42, "ma_30d": 83.97, "change_prev_kg": 0.65, "change_from_start_kg": -2.8}, {"timestamp": "2026-09-26T07:54:25", "date": "2026-09-26", "time": "07:54:25", "weight_kg": 83.1, "weight_lbs": 183.2, "bmi": 26.8, "body_fat_pct": 29.3, "body_water_pct": 50.4, "bone_mass_kg": 2.99, "muscle_mass_kg": 55.72, "visceral_fat": 18.0, "metabolic_age": 1735630930000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.34, "ma_30d": 83.93, "change_prev_kg": -0.15, "change_from_start_kg": -2.95}, {"timestamp": "2026-09-27T08:55:24", "date": "2026-09-27", "time": "08:55:24", "weight_kg": 83.95, "weight_lbs": 185.08, "bmi": 27.1, "body_fat_pct": 30.6, "body_water_pct": 49.6, "bone_mass_kg": 2.97, "muscle_mass_kg": 55.3, "visceral_fat": 18.0, "metabolic_age": 1924972486000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.29, "ma_30d": 83.93, "change_prev_kg": 0.85, "change_from_start_kg": -2.1}, {"timestamp": "2026-09-28T05:59:40", "date": "2026-09-28", "time": "05:59:40", "weight_kg": 83.65, "weight_lbs": 184.42, "bmi": 27.0, "body_fat_pct": 26.8, "body_water_pct": 50.2, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.1, "visceral_fat": 18.0, "metabolic_age": 1199163188000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.26, "ma_30d": 83.92, "change_prev_kg": -0.3, "change_from_start_kg": -2.4}, {"timestamp": "2026-09-29T06:08:54", "date": "2026-09-29", "time": "06:08:54", "weight_kg": 83.2, "weight_lbs": 183.42, "bmi": 26.9, "body_fat_pct": 26.0, "body_water_pct": 50.7, "bone_mass_kg": 3.14, "muscle_mass_kg": 58.41, "visceral_fat": 18.0, "metabolic_age": 1072935484000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.22, "ma_30d": 83.89, "change_prev_kg": -0.45, "change_from_start_kg": -2.85}, {"timestamp": "2026-09-30T06:29:53", "date": "2026-09-30", "time": "06:29:53", "weight_kg": 83.2, "weight_lbs": 183.42, "bmi": 26.9, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.63, "visceral_fat": 18.0, "metabolic_age": 1262277040000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.28, "ma_30d": 83.86, "change_prev_kg": 0.0, "change_from_start_kg": -2.85}, {"timestamp": "2026-10-01T05:50:43", "date": "2026-10-01", "time": "05:50:43", "weight_kg": 82.4, "weight_lbs": 181.66, "bmi": 26.6, "body_fat_pct": 26.9, "body_water_pct": 50.2, "bone_mass_kg": 3.07, "muscle_mass_kg": 57.19, "visceral_fat": 18.0, "metabolic_age": 1293833966000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.25, "ma_30d": 83.8, "change_prev_kg": -0.8, "change_from_start_kg": -3.65}, {"timestamp": "2026-10-02T05:51:29", "date": "2026-10-02", "time": "05:51:29", "weight_kg": 82.9, "weight_lbs": 182.76, "bmi": 26.8, "body_fat_pct": 26.2, "body_water_pct": 50.6, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.06, "visceral_fat": 18.0, "metabolic_age": 1136049336000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.2, "ma_30d": 83.77, "change_prev_kg": 0.5, "change_from_start_kg": -3.15}, {"timestamp": "2026-10-03T06:06:44", "date": "2026-10-03", "time": "06:06:44", "weight_kg": 82.65, "weight_lbs": 182.21, "bmi": 26.7, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.07, "muscle_mass_kg": 57.29, "visceral_fat": 18.0, "metabolic_age": 1293833966000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.14, "ma_30d": 83.72, "change_prev_kg": -0.25, "change_from_start_kg": -3.4}, {"timestamp": "2026-10-04T08:16:24", "date": "2026-10-04", "time": "08:16:24", "weight_kg": 82.0, "weight_lbs": 180.78, "bmi": 26.5, "body_fat_pct": 26.6, "body_water_pct": 50.4, "bone_mass_kg": 3.07, "muscle_mass_kg": 57.13, "visceral_fat": 18.0, "metabolic_age": 1262277040000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 82.86, "ma_30d": 83.66, "change_prev_kg": -0.65, "change_from_start_kg": -4.05}, {"timestamp": "2026-10-05T06:05:53", "date": "2026-10-05", "time": "06:05:53", "weight_kg": 82.8, "weight_lbs": 182.54, "bmi": 26.7, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.08, "muscle_mass_kg": 57.37, "visceral_fat": 18.0, "metabolic_age": 1293833966000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 82.74, "ma_30d": 83.63, "change_prev_kg": 0.8, "change_from_start_kg": -3.25}, {"timestamp": "2026-10-06T05:50:18", "date": "2026-10-06", "time": "05:50:18", "weight_kg": 82.5, "weight_lbs": 181.88, "bmi": 26.6, "body_fat_pct": 26.5, "body_water_pct": 50.4, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.55, "visceral_fat": 18.0, "metabolic_age": 1199163188000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 82.64, "ma_30d": 83.59, "change_prev_kg": -0.3, "change_from_start_kg": -3.55}], "summary": {"has_data": true, "last_updated": "2026-10-06 14:36:27 UTC", "total_entries": 30, "start_date": "2026-09-07", "latest_date": "2026-10-06", "latest_time": "05:50:18", "current_weight_kg": 82.5, "current_weight_lbs": 181.88, "current_bmi": 26.6, "current_body_fat": 26.5, "current_muscle_mass": 57.55, "current_body_water": 50.4, "ma_7d": 82.64, "ma_30d": 83.59, "total_change_kg": -3.55, "change_7d_kg": -0.7, "change_30d_kg": -3.55, "min_weight_kg": 82.0, "max_weight_kg": 86.05, "avg_weight_kg": 83.59, "target": null}}};
+    const IS_ENCRYPTED = false;
 
     let RAW_DATA = [];
     let SUMMARY = {};
@@ -335,6 +354,7 @@
     let weightChartInstance = null;
     let compChartInstance = null;
     let weekdayChartInstance = null;
+    let weeklyBoxplotInstance = null;
 
     function togglePasswordVisibility() {
       const input = document.getElementById('passwordInput');
@@ -727,8 +747,143 @@
       });
     }
 
+    function renderWeeklyBoxplot() {
+      const canvas = document.getElementById('weeklyBoxplotChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!RAW_DATA || RAW_DATA.length === 0) return;
+
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+
+      // Group entries by Monday-Sunday calendar week
+      const weeksMap = new Map();
+
+      RAW_DATA.forEach(entry => {
+        if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
+        
+        const parts = entry.date.split('-');
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        
+        // Find Monday of this week (0=Mon, 6=Sun)
+        const dayOfWeek = (d.getDay() + 6) % 7;
+        const mon = new Date(d);
+        mon.setDate(d.getDate() - dayOfWeek);
+        
+        const sun = new Date(mon);
+        sun.setDate(mon.getDate() + 6);
+
+        const key = mon.toISOString().slice(0, 10);
+        if (!weeksMap.has(key)) {
+          weeksMap.set(key, {
+            monday: mon,
+            sunday: sun,
+            weights: []
+          });
+        }
+        weeksMap.get(key).weights.push(entry.weight_kg * mult);
+      });
+
+      const sortedWeeks = Array.from(weeksMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      if (sortedWeeks.length === 0) return;
+
+      const monthsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+      const labels = [];
+      const boxData = [];
+      const bgColors = [];
+      const borderColors = [];
+
+      sortedWeeks.forEach(([key, info], idx) => {
+        const isCurrentWeek = (idx === sortedWeeks.length - 1);
+        const monStr = `${info.monday.getDate()} ${monthsShort[info.monday.getMonth()]}`;
+        const sunStr = `${info.sunday.getDate()} ${monthsShort[info.sunday.getMonth()]}`;
+        const label = `${monStr} - ${sunStr}${isCurrentWeek ? ' (in corso)' : ''}`;
+        
+        labels.push(label);
+        boxData.push(info.weights);
+
+        if (isCurrentWeek) {
+          bgColors.push('rgba(34, 211, 238, 0.35)'); // cyan for current week
+          borderColors.push('#22d3ee');
+        } else {
+          bgColors.push('rgba(99, 102, 241, 0.35)'); // indigo for past weeks
+          borderColors.push('#818cf8');
+        }
+      });
+
+      if (weeklyBoxplotInstance) {
+        weeklyBoxplotInstance.destroy();
+      }
+
+      weeklyBoxplotInstance = new Chart(ctx, {
+        type: 'boxplot',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: `Distribuzione Peso (${currentUnit})`,
+            data: boxData,
+            backgroundColor: bgColors,
+            borderColor: borderColors,
+            borderWidth: 1.5,
+            itemRadius: 3.5,
+            itemBackgroundColor: 'rgba(255, 255, 255, 0.7)',
+            itemBorderColor: '#0f172a',
+            itemBorderWidth: 1,
+            outlierBackgroundColor: '#f43f5e',
+            outlierBorderColor: '#fda4af',
+            padding: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              labels: {
+                color: '#94a3b8',
+                boxWidth: 12,
+                font: { family: 'Inter', size: 12 }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              titleColor: '#f8fafc',
+              bodyColor: '#cbd5e1',
+              borderColor: '#334155',
+              borderWidth: 1,
+              padding: 12,
+              callbacks: {
+                afterBody: function(context) {
+                  const item = context[0];
+                  if (!item) return '';
+                  const rawArr = sortedWeeks[item.dataIndex][1].weights;
+                  const count = rawArr.length;
+                  const avg = (rawArr.reduce((a, b) => a + b, 0) / count).toFixed(2);
+                  return `Pesate registrate: ${count}\nMedia settimana: ${avg} ${currentUnit}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } }
+            },
+            y: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: {
+                color: '#64748b',
+                callback: (val) => `${val.toFixed(1)} ${currentUnit}`
+              }
+            }
+          }
+        }
+      });
+    }
+
     function renderCharts() {
       renderMainChart();
+      renderWeeklyBoxplot();
       renderCompositionChart();
       renderWeekdayChart();
     }

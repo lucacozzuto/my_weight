@@ -463,6 +463,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
   </script>
   
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@sgratzl/chartjs-chart-boxplot@4.3.5/build/index.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
 
   <style>
@@ -675,6 +676,24 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         </div>
       </div>
 
+      <!-- Weekly Box Plot Section -->
+      <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 sm:pb-4 border-b border-slate-800">
+          <div>
+            <h3 class="font-bold text-white text-base sm:text-lg flex items-center space-x-2">
+              <span>Distribuzione Settimanale (Box Plot)</span>
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">Mediana, quartili (Q1/Q3), min/max e singole pesate per ogni settimana</p>
+          </div>
+          <span class="text-xs px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-medium self-start sm:self-auto">
+            Ultima settimana inclusa coi punti disponibili
+          </span>
+        </div>
+        <div class="mt-4 sm:mt-6 relative h-[320px] sm:h-[360px] w-full">
+          <canvas id="weeklyBoxplotChart"></canvas>
+        </div>
+      </div>
+
       <!-- Secondary Charts Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
@@ -761,6 +780,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
     let weightChartInstance = null;
     let compChartInstance = null;
     let weekdayChartInstance = null;
+    let weeklyBoxplotInstance = null;
 
     function togglePasswordVisibility() {{
       const input = document.getElementById('passwordInput');
@@ -1153,8 +1173,143 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       }});
     }}
 
+    function renderWeeklyBoxplot() {{
+      const canvas = document.getElementById('weeklyBoxplotChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!RAW_DATA || RAW_DATA.length === 0) return;
+
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+
+      // Group entries by Monday-Sunday calendar week
+      const weeksMap = new Map();
+
+      RAW_DATA.forEach(entry => {{
+        if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
+        
+        const parts = entry.date.split('-');
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        
+        // Find Monday of this week (0=Mon, 6=Sun)
+        const dayOfWeek = (d.getDay() + 6) % 7;
+        const mon = new Date(d);
+        mon.setDate(d.getDate() - dayOfWeek);
+        
+        const sun = new Date(mon);
+        sun.setDate(mon.getDate() + 6);
+
+        const key = mon.toISOString().slice(0, 10);
+        if (!weeksMap.has(key)) {{
+          weeksMap.set(key, {{
+            monday: mon,
+            sunday: sun,
+            weights: []
+          }});
+        }}
+        weeksMap.get(key).weights.push(entry.weight_kg * mult);
+      }});
+
+      const sortedWeeks = Array.from(weeksMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      if (sortedWeeks.length === 0) return;
+
+      const monthsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+      const labels = [];
+      const boxData = [];
+      const bgColors = [];
+      const borderColors = [];
+
+      sortedWeeks.forEach(([key, info], idx) => {{
+        const isCurrentWeek = (idx === sortedWeeks.length - 1);
+        const monStr = `${{info.monday.getDate()}} ${{monthsShort[info.monday.getMonth()]}}`;
+        const sunStr = `${{info.sunday.getDate()}} ${{monthsShort[info.sunday.getMonth()]}}`;
+        const label = `${{monStr}} - ${{sunStr}}${{isCurrentWeek ? ' (in corso)' : ''}}`;
+        
+        labels.push(label);
+        boxData.push(info.weights);
+
+        if (isCurrentWeek) {{
+          bgColors.push('rgba(34, 211, 238, 0.35)'); // cyan for current week
+          borderColors.push('#22d3ee');
+        }} else {{
+          bgColors.push('rgba(99, 102, 241, 0.35)'); // indigo for past weeks
+          borderColors.push('#818cf8');
+        }}
+      }});
+
+      if (weeklyBoxplotInstance) {{
+        weeklyBoxplotInstance.destroy();
+      }}
+
+      weeklyBoxplotInstance = new Chart(ctx, {{
+        type: 'boxplot',
+        data: {{
+          labels: labels,
+          datasets: [{{
+            label: `Distribuzione Peso (${{currentUnit}})`,
+            data: boxData,
+            backgroundColor: bgColors,
+            borderColor: borderColors,
+            borderWidth: 1.5,
+            itemRadius: 3.5,
+            itemBackgroundColor: 'rgba(255, 255, 255, 0.7)',
+            itemBorderColor: '#0f172a',
+            itemBorderWidth: 1,
+            outlierBackgroundColor: '#f43f5e',
+            outlierBorderColor: '#fda4af',
+            padding: 8
+          }}]
+        }},
+        options: {{
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {{
+            legend: {{
+              display: true,
+              labels: {{
+                color: '#94a3b8',
+                boxWidth: 12,
+                font: {{ family: 'Inter', size: 12 }}
+              }}
+            }},
+            tooltip: {{
+              backgroundColor: '#0f172a',
+              titleColor: '#f8fafc',
+              bodyColor: '#cbd5e1',
+              borderColor: '#334155',
+              borderWidth: 1,
+              padding: 12,
+              callbacks: {{
+                afterBody: function(context) {{
+                  const item = context[0];
+                  if (!item) return '';
+                  const rawArr = sortedWeeks[item.dataIndex][1].weights;
+                  const count = rawArr.length;
+                  const avg = (rawArr.reduce((a, b) => a + b, 0) / count).toFixed(2);
+                  return `Pesate registrate: ${{count}}\\nMedia settimana: ${{avg}} ${{currentUnit}}`;
+                }}
+              }}
+            }}
+          }},
+          scales: {{
+            x: {{
+              grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
+              ticks: {{ color: '#94a3b8', font: {{ family: 'Inter', size: 11 }} }}
+            }},
+            y: {{
+              grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
+              ticks: {{
+                color: '#64748b',
+                callback: (val) => `${{val.toFixed(1)}} ${{currentUnit}}`
+              }}
+            }}
+          }}
+        }}
+      }});
+    }}
+
     function renderCharts() {{
       renderMainChart();
+      renderWeeklyBoxplot();
       renderCompositionChart();
       renderWeekdayChart();
     }}
