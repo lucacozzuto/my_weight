@@ -1033,24 +1033,26 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       let targetLabel;
       let periodTagText;
       let targetWeekIdx;
+      let targetMonStr;
+      let targetSunStr;
       let targetRangeStr;
 
       if (hasMoreThan4Days || sortedWeeks.length === 1) {{
         targetWeekIdx = latestWeekIndex;
         targetWeek = latestWeek;
         targetLabel = "Sett. in corso";
-        const monStr = `${{targetWeek.monday.getDate()}} ${{monthsShort[targetWeek.monday.getMonth()]}}`;
-        const sunStr = `${{targetWeek.sunday.getDate()}} ${{monthsShort[targetWeek.sunday.getMonth()]}}`;
-        targetRangeStr = `${{monStr}} – ${{sunStr}}`;
+        targetMonStr = `${{targetWeek.monday.getDate()}} ${{monthsShort[targetWeek.monday.getMonth()]}}`;
+        targetSunStr = `${{targetWeek.sunday.getDate()}} ${{monthsShort[targetWeek.sunday.getMonth()]}}`;
+        targetRangeStr = `${{targetMonStr}} – ${{targetSunStr}}`;
         periodTagText = `Confronto: Settimana in corso (${{targetRangeStr}} &bull; ${{targetWeek.weights.length}} pesate)`;
       }} else {{
         // Use previous week
         targetWeekIdx = latestWeekIndex - 1;
         targetWeek = sortedWeeks[targetWeekIdx][1];
         targetLabel = "Sett. precedente";
-        const monStr = `${{targetWeek.monday.getDate()}} ${{monthsShort[targetWeek.monday.getMonth()]}}`;
-        const sunStr = `${{targetWeek.sunday.getDate()}} ${{monthsShort[targetWeek.sunday.getMonth()]}}`;
-        targetRangeStr = `${{monStr}} – ${{sunStr}}`;
+        targetMonStr = `${{targetWeek.monday.getDate()}} ${{monthsShort[targetWeek.monday.getMonth()]}}`;
+        targetSunStr = `${{targetWeek.sunday.getDate()}} ${{monthsShort[targetWeek.sunday.getMonth()]}}`;
+        targetRangeStr = `${{targetMonStr}} – ${{targetSunStr}}`;
         periodTagText = `Confronto: Sett. precedente (${{targetRangeStr}}) &bull; in corso ≤ 4 pesate (${{latestWeek.weights.length}} gg)`;
       }}
 
@@ -1074,7 +1076,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         document.getElementById('fatCurrVal').textContent = `${{fatCurrent.toFixed(2)}} ${{unitStr}}`;
 
         document.getElementById('fatLossPeriodTag').innerHTML = `${{periodTagText}} &bull; ${{numWeeks}} sett.`;
-        document.getElementById('fatDiffDesc').textContent = `su ${{numWeeks}} sett. (${{w1MonStr}} → ${{sunStr}})`;
+        document.getElementById('fatDiffDesc').textContent = `su ${{numWeeks}} sett. (${{w1MonStr}} → ${{targetSunStr}})`;
 
         const diffEl = document.getElementById('fatDiffVal');
         const diffAbs = Math.abs(fatDiff).toFixed(2);
@@ -1130,7 +1132,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       document.getElementById('statMuscle').textContent = latest.muscle_mass_kg ? `${{(latest.muscle_mass_kg * mult).toFixed(1)}} ${{unitStr}}` : '--';
       document.getElementById('statWater').textContent = latest.body_water_pct ? `${{latest.body_water_pct}}%` : '--';
 
-      calculateFatLossStats();
+      try {{ calculateFatLossStats(); }} catch(e) {{ console.error("Error in calculateFatLossStats:", e); }}
     }}
 
     function renderMainChart() {{
