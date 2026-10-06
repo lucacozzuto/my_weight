@@ -579,28 +579,31 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
               <i data-lucide="flame" class="w-6 h-6"></i>
             </div>
             <div>
-              <div class="flex items-center space-x-2">
+              <div class="flex items-center space-x-2 flex-wrap gap-y-1">
                 <h3 class="font-bold text-white text-base sm:text-lg">Stima Massa Grassa Persa</h3>
                 <span id="fatLossPeriodTag" class="text-[11px] px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">Inizializzazione...</span>
               </div>
-              <p class="text-xs text-slate-400 mt-0.5">Calcolo: Mediana Peso × Mediana Grasso % (Prima Settimana vs Periodo Attuale)</p>
+              <p class="text-xs text-slate-400 mt-0.5" id="fatLossSubtitle">Calcolo: Mediana Peso × Mediana Grasso % (1ª Settimana vs Settimana di Riferimento)</p>
             </div>
           </div>
 
           <div class="flex items-center bg-slate-900/90 px-4 py-3 rounded-xl border border-slate-700/60 space-x-3 sm:space-x-4 self-start md:self-auto font-mono text-xs sm:text-sm">
             <div class="text-left">
-              <span class="text-[10px] uppercase text-slate-500 block font-sans">Stima Inizio</span>
-              <span id="fatStartVal" class="font-bold text-slate-200">--</span>
+              <span class="text-[10px] uppercase text-slate-400 block font-sans font-semibold">1ª Settimana</span>
+              <span id="fatStartDateRange" class="text-[10px] text-slate-500 block font-sans">--</span>
+              <span id="fatStartVal" class="font-bold text-slate-200 text-sm sm:text-base mt-0.5 block">--</span>
             </div>
             <span class="text-slate-500 text-lg font-bold">−</span>
             <div class="text-left">
-              <span class="text-[10px] uppercase text-slate-500 block font-sans" id="fatCurrLabel">Stima In Corso</span>
-              <span id="fatCurrVal" class="font-bold text-slate-200">--</span>
+              <span class="text-[10px] uppercase text-slate-400 block font-sans font-semibold" id="fatCurrLabel">Sett. Usata</span>
+              <span id="fatCurrDateRange" class="text-[10px] text-cyan-400 block font-sans font-medium">--</span>
+              <span id="fatCurrVal" class="font-bold text-slate-200 text-sm sm:text-base mt-0.5 block">--</span>
             </div>
             <span class="text-slate-500 text-lg font-bold">=</span>
             <div class="text-left">
-              <span class="text-[10px] uppercase text-slate-500 block font-sans">Differenza</span>
-              <span id="fatDiffVal" class="font-extrabold text-sm sm:text-base text-emerald-400">--</span>
+              <span class="text-[10px] uppercase text-slate-400 block font-sans font-semibold">Differenza</span>
+              <span id="fatDiffDesc" class="text-[10px] text-slate-500 block font-sans">--</span>
+              <span id="fatDiffVal" class="font-extrabold text-sm sm:text-base text-emerald-400 mt-0.5 block">--</span>
             </div>
           </div>
         </div>
@@ -1017,6 +1020,9 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       const firstWeek = sortedWeeks[0][1];
       const w1WeightMed = getMedian(firstWeek.weights);
       const w1FatMed = getMedian(firstWeek.bodyFats);
+      const w1MonStr = `${{firstWeek.monday.getDate()}} ${{monthsShort[firstWeek.monday.getMonth()]}}`;
+      const w1SunStr = `${{firstWeek.sunday.getDate()}} ${{monthsShort[firstWeek.sunday.getMonth()]}}`;
+      const w1RangeStr = `${{w1MonStr}} – ${{w1SunStr}}`;
 
       // Latest week & check if > 4 days
       const latestWeekIndex = sortedWeeks.length - 1;
@@ -1027,22 +1033,25 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       let targetLabel;
       let periodTagText;
       let targetWeekIdx;
+      let targetRangeStr;
 
       if (hasMoreThan4Days || sortedWeeks.length === 1) {{
         targetWeekIdx = latestWeekIndex;
         targetWeek = latestWeek;
-        targetLabel = "Stima In Corso";
+        targetLabel = "Sett. in corso";
         const monStr = `${{targetWeek.monday.getDate()}} ${{monthsShort[targetWeek.monday.getMonth()]}}`;
         const sunStr = `${{targetWeek.sunday.getDate()}} ${{monthsShort[targetWeek.sunday.getMonth()]}}`;
-        periodTagText = `Settimana in corso (${{targetWeek.weights.length}} pesate: ${{monStr}} - ${{sunStr}})`;
+        targetRangeStr = `${{monStr}} – ${{sunStr}}`;
+        periodTagText = `Confronto: Settimana in corso (${{targetRangeStr}} &bull; ${{targetWeek.weights.length}} pesate)`;
       }} else {{
         // Use previous week
         targetWeekIdx = latestWeekIndex - 1;
         targetWeek = sortedWeeks[targetWeekIdx][1];
-        targetLabel = "Stima Sett. Prec.";
+        targetLabel = "Sett. precedente";
         const monStr = `${{targetWeek.monday.getDate()}} ${{monthsShort[targetWeek.monday.getMonth()]}}`;
         const sunStr = `${{targetWeek.sunday.getDate()}} ${{monthsShort[targetWeek.sunday.getMonth()]}}`;
-        periodTagText = `Settimana prec. (${{monStr}} - ${{sunStr}} &bull; in corso ≤ 4gg)`;
+        targetRangeStr = `${{monStr}} – ${{sunStr}}`;
+        periodTagText = `Confronto: Sett. precedente (${{targetRangeStr}}) &bull; in corso ≤ 4 pesate (${{latestWeek.weights.length}} gg)`;
       }}
 
       const targetWeightMed = getMedian(targetWeek.weights);
@@ -1057,27 +1066,35 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         const weeklyRate = fatDiff / numWeeks;
         const weeklyRateAbs = Math.abs(weeklyRate).toFixed(2);
 
+        document.getElementById('fatStartDateRange').textContent = w1RangeStr;
         document.getElementById('fatStartVal').textContent = `${{fatStart.toFixed(2)}} ${{unitStr}}`;
+
         document.getElementById('fatCurrLabel').textContent = targetLabel;
+        document.getElementById('fatCurrDateRange').textContent = targetRangeStr;
         document.getElementById('fatCurrVal').textContent = `${{fatCurrent.toFixed(2)}} ${{unitStr}}`;
+
         document.getElementById('fatLossPeriodTag').innerHTML = `${{periodTagText}} &bull; ${{numWeeks}} sett.`;
+        document.getElementById('fatDiffDesc').textContent = `su ${{numWeeks}} sett. (${{w1MonStr}} → ${{sunStr}})`;
 
         const diffEl = document.getElementById('fatDiffVal');
         const diffAbs = Math.abs(fatDiff).toFixed(2);
         if (fatDiff > 0) {{
-          diffEl.className = "font-extrabold text-sm sm:text-base text-emerald-400";
+          diffEl.className = "font-extrabold text-sm sm:text-base text-emerald-400 mt-0.5 block";
           diffEl.textContent = `-${{diffAbs}} ${{unitStr}} (${{weeklyRateAbs}} ${{unitStr}}/sett.)`;
         }} else if (fatDiff < 0) {{
-          diffEl.className = "font-extrabold text-sm sm:text-base text-rose-400";
+          diffEl.className = "font-extrabold text-sm sm:text-base text-rose-400 mt-0.5 block";
           diffEl.textContent = `+${{diffAbs}} ${{unitStr}} (+${{weeklyRateAbs}} ${{unitStr}}/sett.)`;
         }} else {{
-          diffEl.className = "font-extrabold text-sm sm:text-base text-slate-300";
+          diffEl.className = "font-extrabold text-sm sm:text-base text-slate-300 mt-0.5 block";
           diffEl.textContent = `0.00 ${{unitStr}} (0.00 ${{unitStr}}/sett.)`;
         }}
       }} else {{
         document.getElementById('fatStartVal').textContent = '--';
         document.getElementById('fatCurrVal').textContent = '--';
         document.getElementById('fatDiffVal').textContent = '--';
+        document.getElementById('fatStartDateRange').textContent = '--';
+        document.getElementById('fatCurrDateRange').textContent = '--';
+        document.getElementById('fatDiffDesc').textContent = '--';
         document.getElementById('fatLossPeriodTag').textContent = 'Dati parziali';
       }}
     }}
