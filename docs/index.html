@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Garmin Weight & Body Composition Tracker</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            },
+            surface: {
+              800: '#1e293b',
+              900: '#0f172a',
+              950: '#020617',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Chart.js and date-fns adapter -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="bg-surface-950 text-slate-100 min-h-screen transition-colors duration-200">
+  
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-slate-800 bg-surface-900/80 sticky top-0 z-50 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <i data-lucide="scale" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-white leading-tight">Weight & Health Analytics</h1>
+          <p class="text-xs text-slate-400">Garmin Connect Auto-Sync</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <!-- Unit Toggle -->
+        <div class="bg-slate-800 p-1 rounded-lg flex items-center border border-slate-700 text-xs font-semibold">
+          <button id="btnKg" onclick="setUnit('kg')" class="px-2.5 py-1 rounded-md bg-indigo-600 text-white transition">kg</button>
+          <button id="btnLbs" onclick="setUnit('lbs')" class="px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition">lbs</button>
+        </div>
+
+        <!-- Refresh indicator -->
+        <div class="hidden sm:flex items-center text-xs text-slate-400 bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-lg space-x-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Updated: <span id="lastUpdatedHeader">2026-10-06 12:10:44 UTC</span></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    
+    <!-- Metric Stat Cards Grid -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      
+      <!-- Current Weight Card -->
+      <div class="glass-card rounded-2xl p-5 shadow-sm hover:border-indigo-500/40 transition">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Current Weight</span>
+          <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg">
+            <i data-lucide="activity" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-baseline space-x-2">
+          <span id="statCurrentWeight" class="text-3xl font-extrabold tracking-tight text-white">--</span>
+          <span id="statUnit1" class="text-sm font-medium text-slate-400">kg</span>
+        </div>
+        <div class="mt-2 flex items-center text-xs space-x-1" id="badgeTotalChange">
+          <span class="text-slate-400">Since start:</span>
+          <span id="statTotalChange" class="font-semibold">--</span>
+        </div>
+      </div>
+
+      <!-- 7-Day Trend Card -->
+      <div class="glass-card rounded-2xl p-5 shadow-sm hover:border-indigo-500/40 transition">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">7-Day Moving Avg</span>
+          <div class="p-2 bg-cyan-500/10 text-cyan-400 rounded-lg">
+            <i data-lucide="trending-down" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-baseline space-x-2">
+          <span id="stat7dAvg" class="text-3xl font-extrabold tracking-tight text-white">--</span>
+          <span id="statUnit2" class="text-sm font-medium text-slate-400">kg</span>
+        </div>
+        <div class="mt-2 flex items-center text-xs space-x-1">
+          <span class="text-slate-400">7-Day Delta:</span>
+          <span id="stat7dChange" class="font-semibold">--</span>
+        </div>
+      </div>
+
+      <!-- 30-Day Trend Card -->
+      <div class="glass-card rounded-2xl p-5 shadow-sm hover:border-indigo-500/40 transition">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">30-Day Change</span>
+          <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg">
+            <i data-lucide="calendar" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-baseline space-x-2">
+          <span id="stat30dChange" class="text-3xl font-extrabold tracking-tight text-white">--</span>
+          <span id="statUnit3" class="text-sm font-medium text-slate-400">kg</span>
+        </div>
+        <div class="mt-2 flex items-center text-xs space-x-1">
+          <span class="text-slate-400">Range:</span>
+          <span id="statMinMax" class="text-slate-300 font-medium">--</span>
+        </div>
+      </div>
+
+      <!-- Body Composition / BMI Card -->
+      <div class="glass-card rounded-2xl p-5 shadow-sm hover:border-indigo-500/40 transition">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Body Stats</span>
+          <div class="p-2 bg-purple-500/10 text-purple-400 rounded-lg">
+            <i data-lucide="heart-pulse" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-baseline space-x-3">
+          <div>
+            <span class="text-xs text-slate-400 block">BMI</span>
+            <span id="statBMI" class="text-2xl font-bold text-white">--</span>
+          </div>
+          <div class="border-l border-slate-700 pl-3">
+            <span class="text-xs text-slate-400 block">Body Fat</span>
+            <span id="statBodyFat" class="text-2xl font-bold text-white">--</span>
+          </div>
+        </div>
+        <div class="mt-2 text-xs text-slate-400 flex items-center justify-between">
+          <span>Muscle: <span id="statMuscle" class="text-slate-200 font-semibold">--</span></span>
+          <span>Water: <span id="statWater" class="text-slate-200 font-semibold">--</span></span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Main Chart Section -->
+    <div class="glass-card rounded-2xl p-6 shadow-sm">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-slate-800">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+            <span>Weight Progression & Moving Averages</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Tracking daily morning weigh-ins and trendline</p>
+        </div>
+
+        <!-- Time Range Filters -->
+        <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-medium space-x-1 self-start sm:self-auto">
+          <button onclick="setTimeRange('7d')" id="btnRange7d" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">7D</button>
+          <button onclick="setTimeRange('30d')" id="btnRange30d" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">30D</button>
+          <button onclick="setTimeRange('90d')" id="btnRange90d" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">3M</button>
+          <button onclick="setTimeRange('all')" id="btnRangeAll" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition">All</button>
+        </div>
+      </div>
+
+      <!-- Main Line Chart Canvas -->
+      <div class="mt-6 relative h-[380px] w-full">
+        <canvas id="weightChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Secondary Charts (Body Composition & Weekly Fluctuations) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Body Composition Chart -->
+      <div class="glass-card rounded-2xl p-6 shadow-sm">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+          <div>
+            <h3 class="font-bold text-white text-base">Body Composition Over Time</h3>
+            <p class="text-xs text-slate-400">Fat % and Muscle Mass trends</p>
+          </div>
+          <div class="p-2 bg-purple-500/10 text-purple-400 rounded-lg">
+            <i data-lucide="pie-chart" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="mt-4 relative h-[260px] w-full">
+          <canvas id="compositionChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Weekly Distribution / Daily Fluctuations -->
+      <div class="glass-card rounded-2xl p-6 shadow-sm">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+          <div>
+            <h3 class="font-bold text-white text-base">Day-of-Week Patterns</h3>
+            <p class="text-xs text-slate-400">Average weigh-in comparison by weekday</p>
+          </div>
+          <div class="p-2 bg-cyan-500/10 text-cyan-400 rounded-lg">
+            <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="mt-4 relative h-[260px] w-full">
+          <canvas id="weekdayChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Data Table Section -->
+    <div class="glass-card rounded-2xl p-6 shadow-sm">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div>
+          <h3 class="font-bold text-white text-base">Recent Weigh-in Records</h3>
+          <p class="text-xs text-slate-400">Detailed logs synchronized from Garmin</p>
+        </div>
+        <span class="text-xs text-slate-400" id="tableCount">Showing recent entries</span>
+      </div>
+
+      <div class="overflow-x-auto mt-4">
+        <table class="w-full text-left text-sm text-slate-300">
+          <thead class="text-xs uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
+            <tr>
+              <th class="py-3 px-4 font-semibold">Date</th>
+              <th class="py-3 px-4 font-semibold">Time</th>
+              <th class="py-3 px-4 font-semibold">Weight</th>
+              <th class="py-3 px-4 font-semibold">Daily Diff</th>
+              <th class="py-3 px-4 font-semibold">7-Day Avg</th>
+              <th class="py-3 px-4 font-semibold">BMI</th>
+              <th class="py-3 px-4 font-semibold">Body Fat %</th>
+              <th class="py-3 px-4 font-semibold">Muscle Mass</th>
+            </tr>
+          </thead>
+          <tbody id="dataTableBody" class="divide-y divide-slate-800/60">
+            <!-- Populated dynamically via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500">
+    <p>Powered by Garmin Connect API & GitHub Actions &bull; Automatically updated every morning</p>
+  </footer>
+
+  <!-- Script Logic -->
+  <script>
+    const RAW_DATA = [{"timestamp": "2026-09-01T07:48:00", "date": "2026-09-01", "time": "07:53:00", "weight_kg": 78.21, "weight_lbs": 172.42, "bmi": 24.7, "body_fat_pct": 20.6, "body_water_pct": 54.5, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.73, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 78.21, "ma_30d": 78.21, "change_prev_kg": 0.0, "change_from_start_kg": 0.0}, {"timestamp": "2026-09-02T07:52:00", "date": "2026-09-02", "time": "07:46:00", "weight_kg": 78.2, "weight_lbs": 172.4, "bmi": 24.7, "body_fat_pct": 20.9, "body_water_pct": 54.4, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.43, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 78.2, "ma_30d": 78.2, "change_prev_kg": -0.01, "change_from_start_kg": -0.01}, {"timestamp": "2026-09-03T07:49:00", "date": "2026-09-03", "time": "07:51:00", "weight_kg": 78.34, "weight_lbs": 172.71, "bmi": 24.7, "body_fat_pct": 20.9, "body_water_pct": 54.8, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.77, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 78.25, "ma_30d": 78.25, "change_prev_kg": 0.14, "change_from_start_kg": 0.13}, {"timestamp": "2026-09-04T07:51:00", "date": "2026-09-04", "time": "07:56:00", "weight_kg": 78.6, "weight_lbs": 173.28, "bmi": 24.8, "body_fat_pct": 20.6, "body_water_pct": 54.3, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.62, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 78.34, "ma_30d": 78.34, "change_prev_kg": 0.26, "change_from_start_kg": 0.39}, {"timestamp": "2026-09-05T07:49:00", "date": "2026-09-05", "time": "07:56:00", "weight_kg": 78.41, "weight_lbs": 172.86, "bmi": 24.7, "body_fat_pct": 21.0, "body_water_pct": 54.5, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.78, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 78.35, "ma_30d": 78.35, "change_prev_kg": -0.19, "change_from_start_kg": 0.2}, {"timestamp": "2026-09-06T07:59:00", "date": "2026-09-06", "time": "07:57:00", "weight_kg": 78.39, "weight_lbs": 172.82, "bmi": 24.7, "body_fat_pct": 20.7, "body_water_pct": 54.8, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.9, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 78.36, "ma_30d": 78.36, "change_prev_kg": -0.02, "change_from_start_kg": 0.18}, {"timestamp": "2026-09-07T07:59:00", "date": "2026-09-07", "time": "07:45:00", "weight_kg": 78.6, "weight_lbs": 173.28, "bmi": 24.8, "body_fat_pct": 20.7, "body_water_pct": 54.6, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.8, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 78.39, "ma_30d": 78.39, "change_prev_kg": 0.21, "change_from_start_kg": 0.39}, {"timestamp": "2026-09-08T07:54:00", "date": "2026-09-08", "time": "07:55:00", "weight_kg": 78.37, "weight_lbs": 172.78, "bmi": 24.7, "body_fat_pct": 21.1, "body_water_pct": 54.4, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.66, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 78.42, "ma_30d": 78.39, "change_prev_kg": -0.23, "change_from_start_kg": 0.16}, {"timestamp": "2026-09-09T07:50:00", "date": "2026-09-09", "time": "07:50:00", "weight_kg": 78.29, "weight_lbs": 172.6, "bmi": 24.7, "body_fat_pct": 20.9, "body_water_pct": 54.8, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.79, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 78.43, "ma_30d": 78.38, "change_prev_kg": -0.08, "change_from_start_kg": 0.08}, {"timestamp": "2026-09-10T07:54:00", "date": "2026-09-10", "time": "07:57:00", "weight_kg": 78.18, "weight_lbs": 172.36, "bmi": 24.7, "body_fat_pct": 20.7, "body_water_pct": 54.5, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.5, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 78.41, "ma_30d": 78.36, "change_prev_kg": -0.11, "change_from_start_kg": -0.03}, {"timestamp": "2026-09-11T07:52:00", "date": "2026-09-11", "time": "07:51:00", "weight_kg": 78.0, "weight_lbs": 171.96, "bmi": 24.6, "body_fat_pct": 20.6, "body_water_pct": 55.0, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.7, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 78.32, "ma_30d": 78.33, "change_prev_kg": -0.18, "change_from_start_kg": -0.21}, {"timestamp": "2026-09-12T07:48:00", "date": "2026-09-12", "time": "07:48:00", "weight_kg": 77.82, "weight_lbs": 171.56, "bmi": 24.6, "body_fat_pct": 20.4, "body_water_pct": 55.0, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.32, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 78.24, "ma_30d": 78.28, "change_prev_kg": -0.18, "change_from_start_kg": -0.39}, {"timestamp": "2026-09-13T07:46:00", "date": "2026-09-13", "time": "07:58:00", "weight_kg": 77.58, "weight_lbs": 171.03, "bmi": 24.5, "body_fat_pct": 20.8, "body_water_pct": 54.8, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.38, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 78.12, "ma_30d": 78.23, "change_prev_kg": -0.24, "change_from_start_kg": -0.63}, {"timestamp": "2026-09-14T07:45:00", "date": "2026-09-14", "time": "07:50:00", "weight_kg": 77.2, "weight_lbs": 170.2, "bmi": 24.4, "body_fat_pct": 20.3, "body_water_pct": 55.0, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.34, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 77.92, "ma_30d": 78.16, "change_prev_kg": -0.38, "change_from_start_kg": -1.01}, {"timestamp": "2026-09-15T07:49:00", "date": "2026-09-15", "time": "07:55:00", "weight_kg": 77.14, "weight_lbs": 170.06, "bmi": 24.3, "body_fat_pct": 20.4, "body_water_pct": 54.7, "bone_mass_kg": 3.2, "muscle_mass_kg": 32.97, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 77.74, "ma_30d": 78.09, "change_prev_kg": -0.06, "change_from_start_kg": -1.07}, {"timestamp": "2026-09-16T07:50:00", "date": "2026-09-16", "time": "07:53:00", "weight_kg": 76.81, "weight_lbs": 169.34, "bmi": 24.2, "body_fat_pct": 20.4, "body_water_pct": 55.1, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.09, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 77.53, "ma_30d": 78.01, "change_prev_kg": -0.33, "change_from_start_kg": -1.4}, {"timestamp": "2026-09-17T07:56:00", "date": "2026-09-17", "time": "07:55:00", "weight_kg": 76.91, "weight_lbs": 169.56, "bmi": 24.3, "body_fat_pct": 20.2, "body_water_pct": 55.3, "bone_mass_kg": 3.2, "muscle_mass_kg": 32.92, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 77.35, "ma_30d": 77.94, "change_prev_kg": 0.1, "change_from_start_kg": -1.3}, {"timestamp": "2026-09-18T07:51:00", "date": "2026-09-18", "time": "07:52:00", "weight_kg": 76.71, "weight_lbs": 169.12, "bmi": 24.2, "body_fat_pct": 20.5, "body_water_pct": 54.5, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.02, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 77.17, "ma_30d": 77.88, "change_prev_kg": -0.2, "change_from_start_kg": -1.5}, {"timestamp": "2026-09-19T07:48:00", "date": "2026-09-19", "time": "07:49:00", "weight_kg": 76.83, "weight_lbs": 169.38, "bmi": 24.2, "body_fat_pct": 20.0, "body_water_pct": 55.1, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.2, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 77.03, "ma_30d": 77.82, "change_prev_kg": 0.12, "change_from_start_kg": -1.38}, {"timestamp": "2026-09-20T07:55:00", "date": "2026-09-20", "time": "07:55:00", "weight_kg": 76.44, "weight_lbs": 168.52, "bmi": 24.1, "body_fat_pct": 19.9, "body_water_pct": 55.3, "bone_mass_kg": 3.2, "muscle_mass_kg": 32.84, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 76.86, "ma_30d": 77.75, "change_prev_kg": -0.39, "change_from_start_kg": -1.77}, {"timestamp": "2026-09-21T07:52:00", "date": "2026-09-21", "time": "07:54:00", "weight_kg": 76.5, "weight_lbs": 168.65, "bmi": 24.1, "body_fat_pct": 20.1, "body_water_pct": 55.3, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.08, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 76.76, "ma_30d": 77.69, "change_prev_kg": 0.06, "change_from_start_kg": -1.71}, {"timestamp": "2026-09-22T07:58:00", "date": "2026-09-22", "time": "07:58:00", "weight_kg": 76.55, "weight_lbs": 168.76, "bmi": 24.2, "body_fat_pct": 20.0, "body_water_pct": 54.9, "bone_mass_kg": 3.2, "muscle_mass_kg": 33.05, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 76.68, "ma_30d": 77.64, "change_prev_kg": 0.05, "change_from_start_kg": -1.66}, {"timestamp": "2026-09-23T07:58:00", "date": "2026-09-23", "time": "07:45:00", "weight_kg": 76.17, "weight_lbs": 167.93, "bmi": 24.0, "body_fat_pct": 20.2, "body_water_pct": 55.0, "bone_mass_kg": 3.2, "muscle_mass_kg": 32.93, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 76.59, "ma_30d": 77.58, "change_prev_kg": -0.38, "change_from_start_kg": -2.04}, {"timestamp": "2026-09-24T07:50:00", "date": "2026-09-24", "time": "07:54:00", "weight_kg": 75.81, "weight_lbs": 167.13, "bmi": 23.9, "body_fat_pct": 19.6, "body_water_pct": 54.9, "bone_mass_kg": 3.2, "muscle_mass_kg": 32.48, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 76.43, "ma_30d": 77.5, "change_prev_kg": -0.36, "change_from_start_kg": -2.4}, {"timestamp": "2026-09-25T07:50:00", "date": "2026-09-25", "time": "07:46:00", "weight_kg": 75.43, "weight_lbs": 166.29, "bmi": 23.8, "body_fat_pct": 19.5, "body_water_pct": 55.3, "bone_mass_kg": 3.2, "muscle_mass_kg": 32.27, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 76.25, "ma_30d": 77.42, "change_prev_kg": -0.38, "change_from_start_kg": -2.78}, {"timestamp": "2026-09-26T07:47:00", "date": "2026-09-26", "time": "07:51:00", "weight_kg": 75.04, "weight_lbs": 165.43, "bmi": 23.7, "body_fat_pct": 19.4, "body_water_pct": 55.4, "bone_mass_kg": 3.2, "muscle_mass_kg": 32.12, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 75.99, "ma_30d": 77.33, "change_prev_kg": -0.39, "change_from_start_kg": -3.17}, {"timestamp": "2026-09-27T07:47:00", "date": "2026-09-27", "time": "07:47:00", "weight_kg": 75.29, "weight_lbs": 165.99, "bmi": 23.8, "body_fat_pct": 19.3, "body_water_pct": 55.7, "bone_mass_kg": 3.2, "muscle_mass_kg": 32.53, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 75.83, "ma_30d": 77.25, "change_prev_kg": 0.25, "change_from_start_kg": -2.92}, {"timestamp": "2026-09-28T07:53:00", "date": "2026-09-28", "time": "07:49:00", "weight_kg": 75.34, "weight_lbs": 166.1, "bmi": 23.8, "body_fat_pct": 19.7, "body_water_pct": 54.9, "bone_mass_kg": 3.2, "muscle_mass_kg": 32.49, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 75.66, "ma_30d": 77.18, "change_prev_kg": 0.05, "change_from_start_kg": -2.87}, {"timestamp": "2026-09-29T07:50:00", "date": "2026-09-29", "time": "07:45:00", "weight_kg": 75.13, "weight_lbs": 165.63, "bmi": 23.7, "body_fat_pct": 19.4, "body_water_pct": 55.1, "bone_mass_kg": 3.2, "muscle_mass_kg": 32.16, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 75.46, "ma_30d": 77.11, "change_prev_kg": -0.21, "change_from_start_kg": -3.08}, {"timestamp": "2026-09-30T07:54:00", "date": "2026-09-30", "time": "07:45:00", "weight_kg": 75.21, "weight_lbs": 165.81, "bmi": 23.7, "body_fat_pct": 19.7, "body_water_pct": 55.1, "bone_mass_kg": 3.2, "muscle_mass_kg": 32.48, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 75.32, "ma_30d": 77.05, "change_prev_kg": 0.08, "change_from_start_kg": -3.0}, {"timestamp": "2026-10-01T07:58:00", "date": "2026-10-01", "time": "07:57:00", "weight_kg": 75.28, "weight_lbs": 165.96, "bmi": 23.8, "body_fat_pct": 19.7, "body_water_pct": 55.4, "bone_mass_kg": 3.2, "muscle_mass_kg": 32.3, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 75.25, "ma_30d": 76.95, "change_prev_kg": 0.07, "change_from_start_kg": -2.93}, {"timestamp": "2026-10-02T07:51:00", "date": "2026-10-02", "time": "07:47:00", "weight_kg": 75.3, "weight_lbs": 166.01, "bmi": 23.8, "body_fat_pct": 19.4, "body_water_pct": 55.0, "bone_mass_kg": 3.2, "muscle_mass_kg": 32.4, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 75.23, "ma_30d": 76.86, "change_prev_kg": 0.02, "change_from_start_kg": -2.91}, {"timestamp": "2026-10-03T07:58:00", "date": "2026-10-03", "time": "07:59:00", "weight_kg": 75.34, "weight_lbs": 166.1, "bmi": 23.8, "body_fat_pct": 19.4, "body_water_pct": 55.7, "bone_mass_kg": 3.2, "muscle_mass_kg": 32.52, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 75.27, "ma_30d": 76.76, "change_prev_kg": 0.04, "change_from_start_kg": -2.87}, {"timestamp": "2026-10-04T07:59:00", "date": "2026-10-04", "time": "07:57:00", "weight_kg": 75.33, "weight_lbs": 166.07, "bmi": 23.8, "body_fat_pct": 19.4, "body_water_pct": 55.1, "bone_mass_kg": 3.2, "muscle_mass_kg": 32.33, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 75.28, "ma_30d": 76.65, "change_prev_kg": -0.01, "change_from_start_kg": -2.88}, {"timestamp": "2026-10-05T07:56:00", "date": "2026-10-05", "time": "07:59:00", "weight_kg": 75.19, "weight_lbs": 165.77, "bmi": 23.7, "body_fat_pct": 19.5, "body_water_pct": 55.4, "bone_mass_kg": 3.2, "muscle_mass_kg": 32.43, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 75.25, "ma_30d": 76.54, "change_prev_kg": -0.14, "change_from_start_kg": -3.02}, {"timestamp": "2026-10-06T07:50:00", "date": "2026-10-06", "time": "07:57:00", "weight_kg": 75.04, "weight_lbs": 165.43, "bmi": 23.7, "body_fat_pct": 19.5, "body_water_pct": 55.3, "bone_mass_kg": 3.2, "muscle_mass_kg": 32.13, "visceral_fat": 6.0, "metabolic_age": 28, "physique_rating": 5, "source": "mock_generator", "ma_7d": 75.24, "ma_30d": 76.43, "change_prev_kg": -0.15, "change_from_start_kg": -3.17}];
+    const SUMMARY = {"has_data": true, "last_updated": "2026-10-06 12:10:44 UTC", "total_entries": 36, "start_date": "2026-09-01", "latest_date": "2026-10-06", "latest_time": "07:57:00", "current_weight_kg": 75.04, "current_weight_lbs": 165.43, "current_bmi": 23.7, "current_body_fat": 19.5, "current_muscle_mass": 32.13, "current_body_water": 55.3, "ma_7d": 75.24, "ma_30d": 76.43, "total_change_kg": -3.17, "change_7d_kg": -0.17, "change_30d_kg": -3.56, "min_weight_kg": 75.04, "max_weight_kg": 78.6, "avg_weight_kg": 76.75, "target": null};
+
+    let currentUnit = 'kg';
+    let currentTimeRange = 'all';
+    let weightChartInstance = null;
+    let compChartInstance = null;
+    let weekdayChartInstance = null;
+
+    function formatDelta(val, unit) {
+      if (val === null || val === undefined || isNaN(val)) return '--';
+      const num = parseFloat(val);
+      const sign = num > 0 ? '+' : '';
+      const color = num < 0 ? 'text-emerald-400' : num > 0 ? 'text-rose-400' : 'text-slate-300';
+      return `<span class="${color}">${sign}${num.toFixed(2)} ${unit}</span>`;
+    }
+
+    function setUnit(unit) {
+      currentUnit = unit;
+      document.getElementById('btnKg').className = unit === 'kg' 
+        ? 'px-2.5 py-1 rounded-md bg-indigo-600 text-white transition'
+        : 'px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition';
+      document.getElementById('btnLbs').className = unit === 'lbs'
+        ? 'px-2.5 py-1 rounded-md bg-indigo-600 text-white transition'
+        : 'px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition';
+
+      document.querySelectorAll('#statUnit1, #statUnit2, #statUnit3').forEach(el => el.textContent = unit);
+
+      updateStats();
+      renderCharts();
+      renderTable();
+    }
+
+    function setTimeRange(range) {
+      currentTimeRange = range;
+      ['7d', '30d', '90d', 'all'].forEach(r => {
+        const btn = document.getElementById('btnRange' + (r === 'all' ? 'All' : r));
+        if (btn) {
+          btn.className = (r === range)
+            ? 'px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition'
+            : 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition';
+        }
+      });
+      renderMainChart();
+    }
+
+    function getFilteredData() {
+      if (!RAW_DATA || RAW_DATA.length === 0) return [];
+      if (currentTimeRange === 'all') return RAW_DATA;
+      
+      const days = currentTimeRange === '7d' ? 7 : currentTimeRange === '30d' ? 30 : 90;
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      const cutoffStr = cutoff.toISOString().slice(0, 10);
+      
+      return RAW_DATA.filter(d => d.date >= cutoffStr);
+    }
+
+    function updateStats() {
+      if (!RAW_DATA || RAW_DATA.length === 0) return;
+      
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+      const unitStr = currentUnit;
+
+      const latest = RAW_DATA[RAW_DATA.length - 1];
+      const curW = (latest.weight_kg * mult).toFixed(1);
+      document.getElementById('statCurrentWeight').textContent = curW;
+
+      const totalDiff = ((SUMMARY.total_change_kg || 0) * mult);
+      document.getElementById('statTotalChange').innerHTML = formatDelta(totalDiff, unitStr);
+
+      const ma7 = latest.ma_7d ? (latest.ma_7d * mult).toFixed(1) : curW;
+      document.getElementById('stat7dAvg').textContent = ma7;
+
+      const diff7d = ((SUMMARY.change_7d_kg || 0) * mult);
+      document.getElementById('stat7dChange').innerHTML = formatDelta(diff7d, unitStr);
+
+      const diff30d = ((SUMMARY.change_30d_kg || 0) * mult);
+      document.getElementById('stat30dChange').textContent = (diff30d > 0 ? '+' : '') + diff30d.toFixed(1);
+
+      const minW = ((SUMMARY.min_weight_kg || 0) * mult).toFixed(1);
+      const maxW = ((SUMMARY.max_weight_kg || 0) * mult).toFixed(1);
+      document.getElementById('statMinMax').textContent = `${minW} - ${maxW} ${unitStr}`;
+
+      document.getElementById('statBMI').textContent = latest.bmi ? latest.bmi.toFixed(1) : '--';
+      document.getElementById('statBodyFat').textContent = latest.body_fat_pct ? `${latest.body_fat_pct}%` : '--';
+      document.getElementById('statMuscle').textContent = latest.muscle_mass_kg ? `${(latest.muscle_mass_kg * mult).toFixed(1)} ${unitStr}` : '--';
+      document.getElementById('statWater').textContent = latest.body_water_pct ? `${latest.body_water_pct}%` : '--';
+    }
+
+    function renderMainChart() {
+      const ctx = document.getElementById('weightChart').getContext('2d');
+      const filtered = getFilteredData();
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+
+      const labels = filtered.map(d => d.date);
+      const weights = filtered.map(d => (d.weight_kg * mult));
+      const ma7 = filtered.map(d => d.ma_7d ? (d.ma_7d * mult) : null);
+      const ma30 = filtered.map(d => d.ma_30d ? (d.ma_30d * mult) : null);
+
+      if (weightChartInstance) {
+        weightChartInstance.destroy();
+      }
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+      gradient.addColorStop(0, 'rgba(99, 102, 241, 0.35)');
+      gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+      weightChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: `Daily Weight (${currentUnit})`,
+              data: weights,
+              borderColor: '#818cf8',
+              backgroundColor: gradient,
+              borderWidth: 2.5,
+              fill: true,
+              tension: 0.3,
+              pointBackgroundColor: '#6366f1',
+              pointBorderColor: '#ffffff',
+              pointHoverRadius: 6,
+              pointRadius: filtered.length > 60 ? 2 : 4,
+            },
+            {
+              label: `7-Day Moving Avg`,
+              data: ma7,
+              borderColor: '#38bdf8',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              fill: false,
+              tension: 0.3,
+              pointRadius: 0,
+            },
+            {
+              label: `30-Day Moving Avg`,
+              data: ma30,
+              borderColor: '#34d399',
+              borderWidth: 2,
+              borderDash: [2, 2],
+              fill: false,
+              tension: 0.3,
+              pointRadius: 0,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                color: '#94a3b8',
+                boxWidth: 12,
+                usePointStyle: true,
+                font: { family: 'Inter', size: 12 }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              titleColor: '#f8fafc',
+              bodyColor: '#cbd5e1',
+              borderColor: '#334155',
+              borderWidth: 1,
+              padding: 12,
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label}: ${context.parsed.y ? context.parsed.y.toFixed(2) : '--'} ${currentUnit}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#64748b', maxTicksLimit: 12 }
+            },
+            y: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: {
+                color: '#64748b',
+                callback: (val) => `${val.toFixed(1)} ${currentUnit}`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderCompositionChart() {
+      const ctx = document.getElementById('compositionChart').getContext('2d');
+      const filtered = RAW_DATA.filter(d => d.body_fat_pct !== null || d.muscle_mass_kg !== null);
+      if (filtered.length === 0) return;
+
+      const labels = filtered.map(d => d.date);
+      const fat = filtered.map(d => d.body_fat_pct);
+      const water = filtered.map(d => d.body_water_pct);
+
+      if (compChartInstance) compChartInstance.destroy();
+
+      compChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Body Fat %',
+              data: fat,
+              borderColor: '#c084fc',
+              backgroundColor: 'rgba(192, 132, 252, 0.1)',
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 2,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Body Water %',
+              data: water,
+              borderColor: '#22d3ee',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 2,
+              yAxisID: 'y'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#94a3b8', boxWidth: 12, usePointStyle: true } }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#64748b', maxTicksLimit: 8 } },
+            y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#64748b', callback: (v) => `${v}%` } }
+          }
+        }
+      });
+    }
+
+    function renderWeekdayChart() {
+      const ctx = document.getElementById('weekdayChart').getContext('2d');
+      const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const sums = [0,0,0,0,0,0,0];
+      const counts = [0,0,0,0,0,0,0];
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+
+      RAW_DATA.forEach(d => {
+        const dt = new Date(d.date);
+        let day = dt.getDay() - 1; // 0=Mon, 6=Sun
+        if (day === -1) day = 6;
+        if (d.weight_kg) {
+          sums[day] += (d.weight_kg * mult);
+          counts[day] += 1;
+        }
+      });
+
+      const avgs = sums.map((s, i) => counts[i] > 0 ? (s / counts[i]).toFixed(2) : null);
+
+      if (weekdayChartInstance) weekdayChartInstance.destroy();
+
+      weekdayChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: weekdays,
+          datasets: [{
+            label: `Avg Weight by Day (${currentUnit})`,
+            data: avgs,
+            backgroundColor: 'rgba(56, 189, 248, 0.6)',
+            borderColor: '#38bdf8',
+            borderWidth: 1,
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#94a3b8', boxWidth: 12 } }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#64748b' } },
+            y: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#64748b' },
+              min: avgs.filter(v => v !== null).length > 0 ? Math.floor(Math.min(...avgs.filter(v => v !== null)) - 1) : undefined
+            }
+          }
+        }
+      });
+    }
+
+    function renderCharts() {
+      renderMainChart();
+      renderCompositionChart();
+      renderWeekdayChart();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('dataTableBody');
+      tbody.innerHTML = '';
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+      const reversed = [...RAW_DATA].reverse().slice(0, 30);
+
+      reversed.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-800/40 transition';
+        
+        const wVal = (row.weight_kg * mult).toFixed(2);
+        const diffVal = row.change_prev_kg !== null && row.change_prev_kg !== undefined 
+          ? (row.change_prev_kg * mult) 
+          : null;
+        const ma7Val = row.ma_7d ? (row.ma_7d * mult).toFixed(2) : '--';
+        const muscleVal = row.muscle_mass_kg ? `${(row.muscle_mass_kg * mult).toFixed(1)} ${currentUnit}` : '--';
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-medium text-white">${row.date}</td>
+          <td class="py-3 px-4 text-slate-400">${row.time || '--'}</td>
+          <td class="py-3 px-4 font-bold text-indigo-400">${wVal} ${currentUnit}</td>
+          <td class="py-3 px-4">${formatDelta(diffVal, currentUnit)}</td>
+          <td class="py-3 px-4 text-slate-300">${ma7Val} ${currentUnit}</td>
+          <td class="py-3 px-4 text-slate-300">${row.bmi ? row.bmi.toFixed(1) : '--'}</td>
+          <td class="py-3 px-4 text-purple-400 font-medium">${row.body_fat_pct ? row.body_fat_pct + '%' : '--'}</td>
+          <td class="py-3 px-4 text-slate-300">${muscleVal}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      updateStats();
+      renderCharts();
+      renderTable();
+    });
+  </script>
+</body>
+</html>
