@@ -239,9 +239,16 @@ def merge_and_process_data(existing_entries: list, new_entries: list) -> list:
     if not combined:
         return []
 
+    # If real data is present, purge any mock data
+    has_real_data = any(e.get("source") != "mock_generator" for e in combined.values())
+    filtered_entries = [
+        e for e in combined.values()
+        if not (has_real_data and e.get("source") == "mock_generator")
+    ]
+
     # Sort entries chronologically by date and time
     sorted_entries = sorted(
-        combined.values(),
+        filtered_entries,
         key=lambda x: (x.get("date", ""), x.get("time", "") or x.get("timestamp", ""))
     )
 
