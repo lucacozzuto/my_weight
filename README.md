@@ -38,21 +38,27 @@ To allow GitHub Actions to securely log into your Garmin Connect account:
 
 ---
 
-### 2. Enable GitHub Pages
+### 2. View Your Dashboard (1-Click Local View)
 
-1. Go to **Settings** &rarr; **Pages**.
-2. Under **Build and deployment** &rarr; **Source**, select **GitHub Actions**.
-3. The workflow will automatically build and deploy the dashboard to `https://<username>.github.io/<repo-name>/`.
+Whenever you want to see your updated weight progression, simply run in the repository:
+
+```bash
+./view.sh
+```
+
+This will automatically:
+1. Fetch the latest morning weigh-ins synced by GitHub Actions.
+2. Open the dashboard in your default web browser!
 
 ---
 
-### 3. Trigger Your First Sync
+### 3. Manual Sync (Optional)
 
-1. Go to the **Actions** tab in your GitHub repository.
-2. Select **Fetch Garmin Weight & Deploy Dashboard** on the left.
-3. Click **Run workflow** &rarr; **Run workflow**.
-
-Once complete, your live dashboard will be published!
+- **Via GitHub Actions**: Go to the **Actions** tab on GitHub &rarr; **Fetch Garmin Weight & Update Dashboard** &rarr; **Run workflow**.
+- **Via Local Terminal**:
+  ```bash
+  .venv/bin/python scripts/fetch_garmin_data.py
+  ```
 
 ---
 
