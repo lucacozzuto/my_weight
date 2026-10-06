@@ -1026,8 +1026,10 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       let targetWeek;
       let targetLabel;
       let periodTagText;
+      let targetWeekIdx;
 
       if (hasMoreThan4Days || sortedWeeks.length === 1) {{
+        targetWeekIdx = latestWeekIndex;
         targetWeek = latestWeek;
         targetLabel = "Stima In Corso";
         const monStr = `${{targetWeek.monday.getDate()}} ${{monthsShort[targetWeek.monday.getMonth()]}}`;
@@ -1035,7 +1037,8 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         periodTagText = `Settimana in corso (${{targetWeek.weights.length}} pesate: ${{monStr}} - ${{sunStr}})`;
       }} else {{
         // Use previous week
-        targetWeek = sortedWeeks[latestWeekIndex - 1][1];
+        targetWeekIdx = latestWeekIndex - 1;
+        targetWeek = sortedWeeks[targetWeekIdx][1];
         targetLabel = "Stima Sett. Prec.";
         const monStr = `${{targetWeek.monday.getDate()}} ${{monthsShort[targetWeek.monday.getMonth()]}}`;
         const sunStr = `${{targetWeek.sunday.getDate()}} ${{monthsShort[targetWeek.sunday.getMonth()]}}`;
@@ -1050,22 +1053,26 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         const fatCurrent = targetWeightMed * (targetFatMed / 100);
         const fatDiff = fatStart - fatCurrent;
 
+        const numWeeks = Math.max(1, targetWeekIdx);
+        const weeklyRate = fatDiff / numWeeks;
+        const weeklyRateAbs = Math.abs(weeklyRate).toFixed(2);
+
         document.getElementById('fatStartVal').textContent = `${{fatStart.toFixed(2)}} ${{unitStr}}`;
         document.getElementById('fatCurrLabel').textContent = targetLabel;
         document.getElementById('fatCurrVal').textContent = `${{fatCurrent.toFixed(2)}} ${{unitStr}}`;
-        document.getElementById('fatLossPeriodTag').innerHTML = periodTagText;
+        document.getElementById('fatLossPeriodTag').innerHTML = `${{periodTagText}} &bull; ${{numWeeks}} sett.`;
 
         const diffEl = document.getElementById('fatDiffVal');
         const diffAbs = Math.abs(fatDiff).toFixed(2);
         if (fatDiff > 0) {{
           diffEl.className = "font-extrabold text-sm sm:text-base text-emerald-400";
-          diffEl.textContent = `-${{diffAbs}} ${{unitStr}} (${{fatDiff.toFixed(2)}} persi)`;
+          diffEl.textContent = `-${{diffAbs}} ${{unitStr}} (${{weeklyRateAbs}} ${{unitStr}}/sett.)`;
         }} else if (fatDiff < 0) {{
           diffEl.className = "font-extrabold text-sm sm:text-base text-rose-400";
-          diffEl.textContent = `+${{diffAbs}} ${{unitStr}}`;
+          diffEl.textContent = `+${{diffAbs}} ${{unitStr}} (+${{weeklyRateAbs}} ${{unitStr}}/sett.)`;
         }} else {{
           diffEl.className = "font-extrabold text-sm sm:text-base text-slate-300";
-          diffEl.textContent = `0.00 ${{unitStr}}`;
+          diffEl.textContent = `0.00 ${{unitStr}} (0.00 ${{unitStr}}/sett.)`;
         }}
       }} else {{
         document.getElementById('fatStartVal').textContent = '--';
