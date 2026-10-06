@@ -709,6 +709,39 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
           </div>
         </div>
 
+        <!-- Goal & Forecast Control Bar -->
+        <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs">
+          <div class="flex items-center space-x-2.5 flex-wrap gap-y-1.5">
+            <span class="text-amber-400 font-semibold flex items-center space-x-1.5">
+              <i data-lucide="target" class="w-4 h-4"></i>
+              <span>Obiettivo:</span>
+            </span>
+            <div class="flex items-center space-x-1">
+              <input 
+                type="number" 
+                step="0.5" 
+                id="targetWeightInput" 
+                value="80.0" 
+                onchange="setTargetWeight(this.value)" 
+                class="w-16 bg-slate-800 border border-slate-700 focus:border-amber-500 rounded px-2 py-0.5 text-amber-300 font-bold text-center text-xs outline-none transition" 
+              />
+              <span id="targetUnitLabel" class="text-slate-400 font-medium">kg</span>
+            </div>
+            <span class="text-slate-600 hidden sm:inline">&bull;</span>
+            <span class="text-slate-300" id="targetDistWrapper">Distanza: <strong id="targetDistVal" class="text-amber-300 font-bold">--</strong></span>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <span class="text-cyan-400 font-semibold flex items-center space-x-1">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>Forecast Media 7G:</span>
+            </span>
+            <span id="forecastDateBadge" class="px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-bold">
+              Calcolo...
+            </span>
+          </div>
+        </div>
+
         <div class="mt-4 sm:mt-6 relative h-[320px] sm:h-[380px] w-full">
           <canvas id="weightChart"></canvas>
         </div>
@@ -815,10 +848,20 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
     let SUMMARY = {{}};
     let currentUnit = 'kg';
     let currentTimeRange = 'all';
+    let targetWeightKg = 80.0;
     let weightChartInstance = null;
     let compChartInstance = null;
     let weekdayChartInstance = null;
     let weeklyBoxplotInstance = null;
+
+    function setTargetWeight(val) {{
+      const num = parseFloat(val);
+      if (!isNaN(num) && num > 0) {{
+        targetWeightKg = currentUnit === 'lbs' ? (num / 2.20462) : num;
+        localStorage.setItem('my_weight_target_kg', targetWeightKg);
+        renderMainChart();
+      }}
+    }}
 
     function togglePasswordVisibility() {{
       const input = document.getElementById('passwordInput');
@@ -908,6 +951,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
     function revealDashboard() {{
       const lockScreen = document.getElementById('lockScreen');
       const dashboard = document.getElementById('dashboardContent');
+      targetWeightKg = parseFloat(localStorage.getItem('my_weight_target_kg')) || (SUMMARY.target_info && SUMMARY.target_info.target_kg) || 80.0;
       lockScreen.classList.add('opacity-0', 'pointer-events-none');
       setTimeout(() => {{
         lockScreen.classList.add('hidden');
@@ -943,6 +987,11 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         : 'px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition';
 
       document.querySelectorAll('#statUnit1, #statUnit2, #statUnit3').forEach(el => el.textContent = unit);
+
+      const targetInput = document.getElementById('targetWeightInput');
+      const targetUnit = document.getElementById('targetUnitLabel');
+      if (targetInput) targetInput.value = (targetWeightKg * (unit === 'lbs' ? 2.20462 : 1.0)).toFixed(1);
+      if (targetUnit) targetUnit.textContent = unit;
 
       updateStats();
       renderCharts();
@@ -1139,15 +1188,134 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       const ctx = document.getElementById('weightChart').getContext('2d');
       const filtered = getFilteredData();
       const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+      const unitStr = currentUnit;
 
-      const labels = filtered.map(d => d.date);
+      const targetVal = targetWeightKg * mult;
+      const targetInp = document.getElementById('targetWeightInput');
+      if (targetInp && document.activeElement !== targetInp) {{
+        targetInp.value = targetVal.toFixed(1);
+      }}
+      const targetUnitLbl = document.getElementById('targetUnitLabel');
+      if (targetUnitLbl) targetUnitLbl.textContent = unitStr;
+
+      const histLabels = filtered.map(d => d.date);
       const weights = filtered.map(d => (d.weight_kg * mult));
       const ma7 = filtered.map(d => d.ma_7d ? (d.ma_7d * mult) : null);
       const ma30 = filtered.map(d => d.ma_30d ? (d.ma_30d * mult) : null);
 
-      const allWeights = [...weights, ...ma7, ...ma30].filter(w => w !== null && !isNaN(w));
-      const minW = allWeights.length > 0 ? Math.floor(Math.min(...allWeights) - 1) : undefined;
-      const maxW = allWeights.length > 0 ? Math.ceil(Math.max(...allWeights) + 1) : undefined;
+      // Distance to goal
+      const latestEntry = filtered.length > 0 ? filtered[filtered.length - 1] : null;
+      const latestWeight = latestEntry ? latestEntry.weight_kg * mult : null;
+      const latestMa7 = (latestEntry && latestEntry.ma_7d) ? latestEntry.ma_7d * mult : latestWeight;
+      const distEl = document.getElementById('targetDistVal');
+      if (distEl && latestWeight !== null) {{
+        const diff = latestWeight - targetVal;
+        if (diff > 0.05) {{
+          distEl.textContent = `-${{diff.toFixed(1)}} ${{unitStr}} all'obiettivo`;
+        }} else if (diff < -0.05) {{
+          distEl.textContent = `+${{Math.abs(diff).toFixed(1)}} ${{unitStr}} oltre l'obiettivo`;
+        }} else {{
+          distEl.textContent = `0.0 ${{unitStr}} (Raggiunto! 🎉)`;
+        }}
+      }}
+
+      // 7-day MA linear regression slope calculation over recent points (up to 28 days)
+      const recentWithMa = RAW_DATA.filter(d => d.ma_7d !== null && d.ma_7d !== undefined);
+      const recentEntries = recentWithMa.slice(-28);
+      let slopePerDay = 0;
+      if (recentEntries.length >= 4) {{
+        const n = recentEntries.length;
+        let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+        recentEntries.forEach((e, i) => {{
+          const y = e.ma_7d * mult;
+          sumX += i;
+          sumY += y;
+          sumXY += i * y;
+          sumX2 += i * i;
+        }});
+        const denom = (n * sumX2 - sumX * sumX);
+        if (denom !== 0) {{
+          slopePerDay = (n * sumXY - sumX * sumY) / denom;
+        }}
+      }}
+
+      // Forecast future trajectory
+      const futureLabels = [];
+      const forecastPoints = [];
+      const badgeEl = document.getElementById('forecastDateBadge');
+
+      if (latestEntry && latestMa7 !== null) {{
+        const diffToTarget = targetVal - latestMa7;
+        const monthsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+
+        if (Math.abs(diffToTarget) <= 0.1) {{
+          if (badgeEl) badgeEl.innerHTML = `<span class="text-emerald-400">🎉 Obiettivo Raggiunto!</span>`;
+        }} else if (diffToTarget < 0 && slopePerDay < -0.005) {{
+          const daysNeeded = Math.min(365, Math.max(1, Math.round(Math.abs(diffToTarget) / Math.abs(slopePerDay))));
+          const lastDateParts = latestEntry.date.split('-');
+          const lastDateObj = new Date(parseInt(lastDateParts[0]), parseInt(lastDateParts[1]) - 1, parseInt(lastDateParts[2]));
+          const targetDateObj = new Date(lastDateObj);
+          targetDateObj.setDate(lastDateObj.getDate() + daysNeeded);
+
+          const targetDateStr = `${{targetDateObj.getDate()}} ${{monthsShort[targetDateObj.getMonth()]}} ${{targetDateObj.getFullYear()}}`;
+          const weeksNeeded = (daysNeeded / 7).toFixed(1);
+          const weeklyRate = (Math.abs(slopePerDay) * 7).toFixed(2);
+
+          if (badgeEl) badgeEl.innerHTML = `<span>🎯 <strong>${{targetDateStr}}</strong> (~${{weeksNeeded}} sett. a -${{weeklyRate}} ${{unitStr}}/sett.)</span>`;
+
+          const stepCount = Math.min(daysNeeded, 120);
+          for (let i = 1; i <= stepCount; i++) {{
+            const futureD = new Date(lastDateObj);
+            futureD.setDate(lastDateObj.getDate() + i);
+            futureLabels.push(futureD.toISOString().slice(0, 10));
+            const projWeight = Math.max(targetVal, latestMa7 + slopePerDay * i);
+            forecastPoints.push(projWeight);
+          }}
+        }} else if (diffToTarget > 0 && slopePerDay > 0.005) {{
+          const daysNeeded = Math.min(365, Math.max(1, Math.round(diffToTarget / slopePerDay)));
+          const lastDateParts = latestEntry.date.split('-');
+          const lastDateObj = new Date(parseInt(lastDateParts[0]), parseInt(lastDateParts[1]) - 1, parseInt(lastDateParts[2]));
+          const targetDateObj = new Date(lastDateObj);
+          targetDateObj.setDate(lastDateObj.getDate() + daysNeeded);
+
+          const targetDateStr = `${{targetDateObj.getDate()}} ${{monthsShort[targetDateObj.getMonth()]}} ${{targetDateObj.getFullYear()}}`;
+          const weeksNeeded = (daysNeeded / 7).toFixed(1);
+          const weeklyRate = (slopePerDay * 7).toFixed(2);
+
+          if (badgeEl) badgeEl.innerHTML = `<span>🎯 <strong>${{targetDateStr}}</strong> (~${{weeksNeeded}} sett. a +${{weeklyRate}} ${{unitStr}}/sett.)</span>`;
+
+          const stepCount = Math.min(daysNeeded, 120);
+          for (let i = 1; i <= stepCount; i++) {{
+            const futureD = new Date(lastDateObj);
+            futureD.setDate(lastDateObj.getDate() + i);
+            futureLabels.push(futureD.toISOString().slice(0, 10));
+            const projWeight = Math.min(targetVal, latestMa7 + slopePerDay * i);
+            forecastPoints.push(projWeight);
+          }}
+        }} else {{
+          const weeklyRate = (slopePerDay * 7).toFixed(2);
+          if (badgeEl) badgeEl.innerHTML = `<span class="text-amber-400">Trend 7G stabile (${{weeklyRate >= 0 ? '+' : ''}}${{weeklyRate}} ${{unitStr}}/sett.)</span>`;
+        }}
+      }}
+
+      const allLabels = [...histLabels, ...futureLabels];
+      const paddedWeights = [...weights, ...Array(futureLabels.length).fill(null)];
+      const paddedMa7 = [...ma7, ...Array(futureLabels.length).fill(null)];
+      const paddedMa30 = [...ma30, ...Array(futureLabels.length).fill(null)];
+
+      const forecastSeries = Array(Math.max(0, histLabels.length - 1)).fill(null);
+      if (latestMa7 !== null && forecastPoints.length > 0) {{
+        forecastSeries.push(latestMa7);
+        forecastSeries.push(...forecastPoints);
+      }} else if (histLabels.length > 0) {{
+        forecastSeries.push(null);
+      }}
+
+      const targetSeries = Array(allLabels.length).fill(targetVal);
+
+      const allValues = [...paddedWeights, ...paddedMa7, ...paddedMa30, targetVal, ...forecastPoints].filter(v => v !== null && !isNaN(v));
+      const minW = allValues.length > 0 ? Math.floor(Math.min(...allValues) - 1) : undefined;
+      const maxW = allValues.length > 0 ? Math.ceil(Math.max(...allValues) + 1) : undefined;
 
       if (weightChartInstance) {{
         weightChartInstance.destroy();
@@ -1160,11 +1328,11 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       weightChartInstance = new Chart(ctx, {{
         type: 'line',
         data: {{
-          labels: labels,
+          labels: allLabels,
           datasets: [
             {{
-              label: `Peso Giornaliero (${{currentUnit}})`,
-              data: weights,
+              label: `Peso Giornaliero (${{unitStr}})`,
+              data: paddedWeights,
               borderColor: '#818cf8',
               backgroundColor: gradient,
               borderWidth: 2.5,
@@ -1177,22 +1345,42 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
             }},
             {{
               label: `Media 7 Giorni`,
-              data: ma7,
+              data: paddedMa7,
               borderColor: '#38bdf8',
-              borderWidth: 2,
-              borderDash: [5, 5],
+              borderWidth: 2.5,
               fill: false,
               tension: 0.3,
               pointRadius: 0,
             }},
             {{
-              label: `Media 30 Giorni`,
-              data: ma30,
-              borderColor: '#34d399',
+              label: `Forecast Trend 7G`,
+              data: forecastSeries,
+              borderColor: '#06b6d4',
               borderWidth: 2,
-              borderDash: [2, 2],
+              borderDash: [4, 4],
+              fill: false,
+              tension: 0.1,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+            }},
+            {{
+              label: `Media 30 Giorni`,
+              data: paddedMa30,
+              borderColor: '#34d399',
+              borderWidth: 1.8,
+              borderDash: [3, 3],
               fill: false,
               tension: 0.3,
+              pointRadius: 0,
+            }},
+            {{
+              label: `Obiettivo (${{targetVal.toFixed(1)}} ${{unitStr}})`,
+              data: targetSeries,
+              borderColor: '#f59e0b',
+              borderWidth: 2,
+              borderDash: [6, 4],
+              fill: false,
+              tension: 0,
               pointRadius: 0,
             }}
           ]
@@ -1220,13 +1408,20 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
               bodyColor: '#cbd5e1',
               borderColor: '#334155',
               borderWidth: 1,
-              padding: 12
+              padding: 12,
+              callbacks: {{
+                label: function(context) {{
+                  const val = context.parsed.y;
+                  if (val === null || val === undefined) return '';
+                  return `${{context.dataset.label}}: ${{val.toFixed(1)}} ${{unitStr}}`;
+                }}
+              }}
             }}
           }},
           scales: {{
             x: {{
               grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
-              ticks: {{ color: '#64748b', maxTicksLimit: 8 }}
+              ticks: {{ color: '#64748b', maxTicksLimit: 10 }}
             }},
             y: {{
               min: minW,
@@ -1234,7 +1429,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
               grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
               ticks: {{
                 color: '#64748b',
-                callback: (val) => `${{val.toFixed(1)}} ${{currentUnit}}`
+                callback: (val) => `${{val.toFixed(1)}} ${{unitStr}}`
               }}
             }}
           }}
@@ -1574,7 +1769,7 @@ def parse_target_weight_env() -> float | None:
 
 def main():
     default_start = os.environ.get("GARMIN_START_DATE", "").strip() or get_default_start_date()
-    default_target = parse_target_weight_env()
+    default_target = parse_target_weight_env() or 80.0
     dashboard_password = (os.environ.get("DASHBOARD_PASSWORD") or os.environ.get("GARMIN_DASHBOARD_PASSWORD") or "").strip() or None
 
     parser = argparse.ArgumentParser(description="Fetch Garmin weight data and generate protected dashboard")

@@ -283,6 +283,39 @@
           </div>
         </div>
 
+        <!-- Goal & Forecast Control Bar -->
+        <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs">
+          <div class="flex items-center space-x-2.5 flex-wrap gap-y-1.5">
+            <span class="text-amber-400 font-semibold flex items-center space-x-1.5">
+              <i data-lucide="target" class="w-4 h-4"></i>
+              <span>Obiettivo:</span>
+            </span>
+            <div class="flex items-center space-x-1">
+              <input 
+                type="number" 
+                step="0.5" 
+                id="targetWeightInput" 
+                value="80.0" 
+                onchange="setTargetWeight(this.value)" 
+                class="w-16 bg-slate-800 border border-slate-700 focus:border-amber-500 rounded px-2 py-0.5 text-amber-300 font-bold text-center text-xs outline-none transition" 
+              />
+              <span id="targetUnitLabel" class="text-slate-400 font-medium">kg</span>
+            </div>
+            <span class="text-slate-600 hidden sm:inline">&bull;</span>
+            <span class="text-slate-300" id="targetDistWrapper">Distanza: <strong id="targetDistVal" class="text-amber-300 font-bold">--</strong></span>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <span class="text-cyan-400 font-semibold flex items-center space-x-1">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>Forecast Media 7G:</span>
+            </span>
+            <span id="forecastDateBadge" class="px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-bold">
+              Calcolo...
+            </span>
+          </div>
+        </div>
+
         <div class="mt-4 sm:mt-6 relative h-[320px] sm:h-[380px] w-full">
           <canvas id="weightChart"></canvas>
         </div>
@@ -382,17 +415,27 @@
 
   <!-- SCRIPT ENGINE -->
   <script>
-    const EMBEDDED_PAYLOAD = {"encrypted": true, "salt": "LQA/olrad87np8Kd34lk6Q==", "iv": "6dostpD7UXJTtY9G", "ciphertext": "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"};
-    const IS_ENCRYPTED = true;
+    const EMBEDDED_PAYLOAD = {"encrypted": false, "data": {"entries": [{"timestamp": "2026-09-07T07:37:12", "date": "2026-09-07", "time": "07:37:12", "weight_kg": 86.05, "weight_lbs": 189.71, "bmi": 27.8, "body_fat_pct": 28.6, "body_water_pct": 51.0, "bone_mass_kg": 3.13, "muscle_mass_kg": 58.31, "visceral_fat": 20.0, "metabolic_age": 1388504744000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 86.05, "ma_30d": 86.05, "change_prev_kg": 0.0, "change_from_start_kg": 0.0}, {"timestamp": "2026-09-08T06:09:22", "date": "2026-09-08", "time": "06:09:22", "weight_kg": 84.85, "weight_lbs": 187.06, "bmi": 27.4, "body_fat_pct": 27.9, "body_water_pct": 49.5, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.06, "visceral_fat": 19.0, "metabolic_age": 1325390892000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 85.45, "ma_30d": 85.45, "change_prev_kg": -1.2, "change_from_start_kg": -1.2}, {"timestamp": "2026-09-09T06:02:18", "date": "2026-09-09", "time": "06:02:18", "weight_kg": 84.85, "weight_lbs": 187.06, "bmi": 27.4, "body_fat_pct": 27.9, "body_water_pct": 49.5, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.06, "visceral_fat": 19.0, "metabolic_age": 1325390892000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 85.25, "ma_30d": 85.25, "change_prev_kg": 0.0, "change_from_start_kg": -1.2}, {"timestamp": "2026-09-10T06:06:26", "date": "2026-09-10", "time": "06:06:26", "weight_kg": 84.65, "weight_lbs": 186.62, "bmi": 27.3, "body_fat_pct": 27.3, "body_water_pct": 49.8, "bone_mass_kg": 3.13, "muscle_mass_kg": 58.37, "visceral_fat": 19.0, "metabolic_age": 1230720114000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 85.1, "ma_30d": 85.1, "change_prev_kg": -0.2, "change_from_start_kg": -1.4}, {"timestamp": "2026-09-11T08:31:47", "date": "2026-09-11", "time": "08:31:47", "weight_kg": 84.35, "weight_lbs": 185.96, "bmi": 27.2, "body_fat_pct": 28.1, "body_water_pct": 49.3, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.57, "visceral_fat": 19.0, "metabolic_age": 1420061670000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.95, "ma_30d": 84.95, "change_prev_kg": -0.3, "change_from_start_kg": -1.7}, {"timestamp": "2026-09-12T07:51:56", "date": "2026-09-12", "time": "07:51:56", "weight_kg": 84.1, "weight_lbs": 185.41, "bmi": 27.2, "body_fat_pct": 27.9, "body_water_pct": 49.4, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.52, "visceral_fat": 19.0, "metabolic_age": 1388504744000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.81, "ma_30d": 84.81, "change_prev_kg": -0.25, "change_from_start_kg": -1.95}, {"timestamp": "2026-09-13T08:38:01", "date": "2026-09-13", "time": "08:38:01", "weight_kg": 83.9, "weight_lbs": 184.97, "bmi": 27.1, "body_fat_pct": 26.1, "body_water_pct": 50.7, "bone_mass_kg": 3.16, "muscle_mass_kg": 58.87, "visceral_fat": 18.0, "metabolic_age": 1041378558000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.68, "ma_30d": 84.68, "change_prev_kg": -0.2, "change_from_start_kg": -2.15}, {"timestamp": "2026-09-14T06:03:39", "date": "2026-09-14", "time": "06:03:39", "weight_kg": 83.9, "weight_lbs": 184.97, "bmi": 27.1, "body_fat_pct": 26.0, "body_water_pct": 50.7, "bone_mass_kg": 3.16, "muscle_mass_kg": 58.89, "visceral_fat": 18.0, "metabolic_age": 1009821632000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.37, "ma_30d": 84.58, "change_prev_kg": 0.0, "change_from_start_kg": -2.15}, {"timestamp": "2026-09-15T06:01:11", "date": "2026-09-15", "time": "06:01:11", "weight_kg": 83.7, "weight_lbs": 184.53, "bmi": 27.0, "body_fat_pct": 28.3, "body_water_pct": 49.2, "bone_mass_kg": 3.05, "muscle_mass_kg": 56.92, "visceral_fat": 18.0, "metabolic_age": 1514732448000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.21, "ma_30d": 84.48, "change_prev_kg": -0.2, "change_from_start_kg": -2.35}, {"timestamp": "2026-09-16T06:01:10", "date": "2026-09-16", "time": "06:01:10", "weight_kg": 83.8, "weight_lbs": 184.75, "bmi": 27.1, "body_fat_pct": 31.0, "body_water_pct": 49.2, "bone_mass_kg": 2.94, "muscle_mass_kg": 54.84, "visceral_fat": 18.0, "metabolic_age": 2051200190000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.06, "ma_30d": 84.41, "change_prev_kg": 0.1, "change_from_start_kg": -2.25}, {"timestamp": "2026-09-17T05:38:24", "date": "2026-09-17", "time": "05:38:24", "weight_kg": 83.55, "weight_lbs": 184.2, "bmi": 27.0, "body_fat_pct": 26.2, "body_water_pct": 50.6, "bone_mass_kg": 3.14, "muscle_mass_kg": 58.49, "visceral_fat": 18.0, "metabolic_age": 1072935484000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.9, "ma_30d": 84.34, "change_prev_kg": -0.25, "change_from_start_kg": -2.5}, {"timestamp": "2026-09-18T06:01:36", "date": "2026-09-18", "time": "06:01:36", "weight_kg": 83.85, "weight_lbs": 184.86, "bmi": 27.1, "body_fat_pct": 27.5, "body_water_pct": 49.7, "bone_mass_kg": 3.1, "muscle_mass_kg": 57.69, "visceral_fat": 18.0, "metabolic_age": 1325390892000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.83, "ma_30d": 84.3, "change_prev_kg": 0.3, "change_from_start_kg": -2.2}, {"timestamp": "2026-09-19T06:50:48", "date": "2026-09-19", "time": "06:50:48", "weight_kg": 83.7, "weight_lbs": 184.53, "bmi": 27.0, "body_fat_pct": 26.3, "body_water_pct": 50.6, "bone_mass_kg": 3.14, "muscle_mass_kg": 58.54, "visceral_fat": 18.0, "metabolic_age": 1104492410000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.77, "ma_30d": 84.25, "change_prev_kg": -0.15, "change_from_start_kg": -2.35}, {"timestamp": "2026-09-20T09:14:30", "date": "2026-09-20", "time": "09:14:30", "weight_kg": 84.25, "weight_lbs": 185.74, "bmi": 27.2, "body_fat_pct": 27.4, "body_water_pct": 49.8, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.05, "visceral_fat": 19.0, "metabolic_age": 1262277040000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.82, "ma_30d": 84.25, "change_prev_kg": 0.55, "change_from_start_kg": -1.8}, {"timestamp": "2026-09-21T05:53:07", "date": "2026-09-21", "time": "05:53:07", "weight_kg": 83.9, "weight_lbs": 184.97, "bmi": 27.1, "body_fat_pct": 31.1, "body_water_pct": 49.2, "bone_mass_kg": 2.94, "muscle_mass_kg": 54.84, "visceral_fat": 18.0, "metabolic_age": 2051200190000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.82, "ma_30d": 84.23, "change_prev_kg": -0.35, "change_from_start_kg": -2.15}, {"timestamp": "2026-09-22T05:59:10", "date": "2026-09-22", "time": "05:59:10", "weight_kg": 83.45, "weight_lbs": 183.98, "bmi": 26.9, "body_fat_pct": 26.1, "body_water_pct": 50.7, "bone_mass_kg": 3.14, "muscle_mass_kg": 58.5, "visceral_fat": 18.0, "metabolic_age": 1072935484000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.79, "ma_30d": 84.18, "change_prev_kg": -0.45, "change_from_start_kg": -2.6}, {"timestamp": "2026-09-23T05:53:11", "date": "2026-09-23", "time": "05:53:11", "weight_kg": 82.8, "weight_lbs": 182.54, "bmi": 26.7, "body_fat_pct": 25.2, "body_water_pct": 51.3, "bone_mass_kg": 3.15, "muscle_mass_kg": 58.75, "visceral_fat": 18.0, "metabolic_age": 946707780000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.64, "ma_30d": 84.1, "change_prev_kg": -0.65, "change_from_start_kg": -3.25}, {"timestamp": "2026-09-24T08:40:54", "date": "2026-09-24", "time": "08:40:54", "weight_kg": 82.6, "weight_lbs": 182.1, "bmi": 26.7, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.07, "muscle_mass_kg": 57.26, "visceral_fat": 18.0, "metabolic_age": 1293833966000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.51, "ma_30d": 84.01, "change_prev_kg": -0.2, "change_from_start_kg": -3.45}, {"timestamp": "2026-09-25T05:56:34", "date": "2026-09-25", "time": "05:56:34", "weight_kg": 83.25, "weight_lbs": 183.53, "bmi": 26.9, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.65, "visceral_fat": 18.0, "metabolic_age": 1262277040000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.42, "ma_30d": 83.97, "change_prev_kg": 0.65, "change_from_start_kg": -2.8}, {"timestamp": "2026-09-26T07:54:25", "date": "2026-09-26", "time": "07:54:25", "weight_kg": 83.1, "weight_lbs": 183.2, "bmi": 26.8, "body_fat_pct": 29.3, "body_water_pct": 50.4, "bone_mass_kg": 2.99, "muscle_mass_kg": 55.72, "visceral_fat": 18.0, "metabolic_age": 1735630930000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.34, "ma_30d": 83.93, "change_prev_kg": -0.15, "change_from_start_kg": -2.95}, {"timestamp": "2026-09-27T08:55:24", "date": "2026-09-27", "time": "08:55:24", "weight_kg": 83.95, "weight_lbs": 185.08, "bmi": 27.1, "body_fat_pct": 30.6, "body_water_pct": 49.6, "bone_mass_kg": 2.97, "muscle_mass_kg": 55.3, "visceral_fat": 18.0, "metabolic_age": 1924972486000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.29, "ma_30d": 83.93, "change_prev_kg": 0.85, "change_from_start_kg": -2.1}, {"timestamp": "2026-09-28T05:59:40", "date": "2026-09-28", "time": "05:59:40", "weight_kg": 83.65, "weight_lbs": 184.42, "bmi": 27.0, "body_fat_pct": 26.8, "body_water_pct": 50.2, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.1, "visceral_fat": 18.0, "metabolic_age": 1199163188000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.26, "ma_30d": 83.92, "change_prev_kg": -0.3, "change_from_start_kg": -2.4}, {"timestamp": "2026-09-29T06:08:54", "date": "2026-09-29", "time": "06:08:54", "weight_kg": 83.2, "weight_lbs": 183.42, "bmi": 26.9, "body_fat_pct": 26.0, "body_water_pct": 50.7, "bone_mass_kg": 3.14, "muscle_mass_kg": 58.41, "visceral_fat": 18.0, "metabolic_age": 1072935484000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.22, "ma_30d": 83.89, "change_prev_kg": -0.45, "change_from_start_kg": -2.85}, {"timestamp": "2026-09-30T06:29:53", "date": "2026-09-30", "time": "06:29:53", "weight_kg": 83.2, "weight_lbs": 183.42, "bmi": 26.9, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.63, "visceral_fat": 18.0, "metabolic_age": 1262277040000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.28, "ma_30d": 83.86, "change_prev_kg": 0.0, "change_from_start_kg": -2.85}, {"timestamp": "2026-10-01T05:50:43", "date": "2026-10-01", "time": "05:50:43", "weight_kg": 82.4, "weight_lbs": 181.66, "bmi": 26.6, "body_fat_pct": 26.9, "body_water_pct": 50.2, "bone_mass_kg": 3.07, "muscle_mass_kg": 57.19, "visceral_fat": 18.0, "metabolic_age": 1293833966000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.25, "ma_30d": 83.8, "change_prev_kg": -0.8, "change_from_start_kg": -3.65}, {"timestamp": "2026-10-02T05:51:29", "date": "2026-10-02", "time": "05:51:29", "weight_kg": 82.9, "weight_lbs": 182.76, "bmi": 26.8, "body_fat_pct": 26.2, "body_water_pct": 50.6, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.06, "visceral_fat": 18.0, "metabolic_age": 1136049336000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.2, "ma_30d": 83.77, "change_prev_kg": 0.5, "change_from_start_kg": -3.15}, {"timestamp": "2026-10-03T06:06:44", "date": "2026-10-03", "time": "06:06:44", "weight_kg": 82.65, "weight_lbs": 182.21, "bmi": 26.7, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.07, "muscle_mass_kg": 57.29, "visceral_fat": 18.0, "metabolic_age": 1293833966000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.14, "ma_30d": 83.72, "change_prev_kg": -0.25, "change_from_start_kg": -3.4}, {"timestamp": "2026-10-04T08:16:24", "date": "2026-10-04", "time": "08:16:24", "weight_kg": 82.0, "weight_lbs": 180.78, "bmi": 26.5, "body_fat_pct": 26.6, "body_water_pct": 50.4, "bone_mass_kg": 3.07, "muscle_mass_kg": 57.13, "visceral_fat": 18.0, "metabolic_age": 1262277040000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 82.86, "ma_30d": 83.66, "change_prev_kg": -0.65, "change_from_start_kg": -4.05}, {"timestamp": "2026-10-05T06:05:53", "date": "2026-10-05", "time": "06:05:53", "weight_kg": 82.8, "weight_lbs": 182.54, "bmi": 26.7, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.08, "muscle_mass_kg": 57.37, "visceral_fat": 18.0, "metabolic_age": 1293833966000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 82.74, "ma_30d": 83.63, "change_prev_kg": 0.8, "change_from_start_kg": -3.25}, {"timestamp": "2026-10-06T05:50:18", "date": "2026-10-06", "time": "05:50:18", "weight_kg": 82.5, "weight_lbs": 181.88, "bmi": 26.6, "body_fat_pct": 26.5, "body_water_pct": 50.4, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.55, "visceral_fat": 18.0, "metabolic_age": 1199163188000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 82.64, "ma_30d": 83.59, "change_prev_kg": -0.3, "change_from_start_kg": -3.55}], "summary": {"has_data": true, "last_updated": "2026-10-06 16:35:54 UTC", "total_entries": 30, "start_date": "2026-09-07", "latest_date": "2026-10-06", "latest_time": "05:50:18", "current_weight_kg": 82.5, "current_weight_lbs": 181.88, "current_bmi": 26.6, "current_body_fat": 26.5, "current_muscle_mass": 57.55, "current_body_water": 50.4, "ma_7d": 82.64, "ma_30d": 83.59, "total_change_kg": -3.55, "change_7d_kg": -0.7, "change_30d_kg": -3.55, "min_weight_kg": 82.0, "max_weight_kg": 86.05, "avg_weight_kg": 83.59, "target": {"target_kg": 80.0, "remaining_kg": 2.5, "progress_pct": 58.7}}}};
+    const IS_ENCRYPTED = false;
 
     let RAW_DATA = [];
     let SUMMARY = {};
     let currentUnit = 'kg';
     let currentTimeRange = 'all';
+    let targetWeightKg = 80.0;
     let weightChartInstance = null;
     let compChartInstance = null;
     let weekdayChartInstance = null;
     let weeklyBoxplotInstance = null;
+
+    function setTargetWeight(val) {
+      const num = parseFloat(val);
+      if (!isNaN(num) && num > 0) {
+        targetWeightKg = currentUnit === 'lbs' ? (num / 2.20462) : num;
+        localStorage.setItem('my_weight_target_kg', targetWeightKg);
+        renderMainChart();
+      }
+    }
 
     function togglePasswordVisibility() {
       const input = document.getElementById('passwordInput');
@@ -482,6 +525,7 @@
     function revealDashboard() {
       const lockScreen = document.getElementById('lockScreen');
       const dashboard = document.getElementById('dashboardContent');
+      targetWeightKg = parseFloat(localStorage.getItem('my_weight_target_kg')) || (SUMMARY.target_info && SUMMARY.target_info.target_kg) || 80.0;
       lockScreen.classList.add('opacity-0', 'pointer-events-none');
       setTimeout(() => {
         lockScreen.classList.add('hidden');
@@ -517,6 +561,11 @@
         : 'px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition';
 
       document.querySelectorAll('#statUnit1, #statUnit2, #statUnit3').forEach(el => el.textContent = unit);
+
+      const targetInput = document.getElementById('targetWeightInput');
+      const targetUnit = document.getElementById('targetUnitLabel');
+      if (targetInput) targetInput.value = (targetWeightKg * (unit === 'lbs' ? 2.20462 : 1.0)).toFixed(1);
+      if (targetUnit) targetUnit.textContent = unit;
 
       updateStats();
       renderCharts();
@@ -713,15 +762,134 @@
       const ctx = document.getElementById('weightChart').getContext('2d');
       const filtered = getFilteredData();
       const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+      const unitStr = currentUnit;
 
-      const labels = filtered.map(d => d.date);
+      const targetVal = targetWeightKg * mult;
+      const targetInp = document.getElementById('targetWeightInput');
+      if (targetInp && document.activeElement !== targetInp) {
+        targetInp.value = targetVal.toFixed(1);
+      }
+      const targetUnitLbl = document.getElementById('targetUnitLabel');
+      if (targetUnitLbl) targetUnitLbl.textContent = unitStr;
+
+      const histLabels = filtered.map(d => d.date);
       const weights = filtered.map(d => (d.weight_kg * mult));
       const ma7 = filtered.map(d => d.ma_7d ? (d.ma_7d * mult) : null);
       const ma30 = filtered.map(d => d.ma_30d ? (d.ma_30d * mult) : null);
 
-      const allWeights = [...weights, ...ma7, ...ma30].filter(w => w !== null && !isNaN(w));
-      const minW = allWeights.length > 0 ? Math.floor(Math.min(...allWeights) - 1) : undefined;
-      const maxW = allWeights.length > 0 ? Math.ceil(Math.max(...allWeights) + 1) : undefined;
+      // Distance to goal
+      const latestEntry = filtered.length > 0 ? filtered[filtered.length - 1] : null;
+      const latestWeight = latestEntry ? latestEntry.weight_kg * mult : null;
+      const latestMa7 = (latestEntry && latestEntry.ma_7d) ? latestEntry.ma_7d * mult : latestWeight;
+      const distEl = document.getElementById('targetDistVal');
+      if (distEl && latestWeight !== null) {
+        const diff = latestWeight - targetVal;
+        if (diff > 0.05) {
+          distEl.textContent = `-${diff.toFixed(1)} ${unitStr} all'obiettivo`;
+        } else if (diff < -0.05) {
+          distEl.textContent = `+${Math.abs(diff).toFixed(1)} ${unitStr} oltre l'obiettivo`;
+        } else {
+          distEl.textContent = `0.0 ${unitStr} (Raggiunto! 🎉)`;
+        }
+      }
+
+      // 7-day MA linear regression slope calculation over recent points (up to 28 days)
+      const recentWithMa = RAW_DATA.filter(d => d.ma_7d !== null && d.ma_7d !== undefined);
+      const recentEntries = recentWithMa.slice(-28);
+      let slopePerDay = 0;
+      if (recentEntries.length >= 4) {
+        const n = recentEntries.length;
+        let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+        recentEntries.forEach((e, i) => {
+          const y = e.ma_7d * mult;
+          sumX += i;
+          sumY += y;
+          sumXY += i * y;
+          sumX2 += i * i;
+        });
+        const denom = (n * sumX2 - sumX * sumX);
+        if (denom !== 0) {
+          slopePerDay = (n * sumXY - sumX * sumY) / denom;
+        }
+      }
+
+      // Forecast future trajectory
+      const futureLabels = [];
+      const forecastPoints = [];
+      const badgeEl = document.getElementById('forecastDateBadge');
+
+      if (latestEntry && latestMa7 !== null) {
+        const diffToTarget = targetVal - latestMa7;
+        const monthsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+
+        if (Math.abs(diffToTarget) <= 0.1) {
+          if (badgeEl) badgeEl.innerHTML = `<span class="text-emerald-400">🎉 Obiettivo Raggiunto!</span>`;
+        } else if (diffToTarget < 0 && slopePerDay < -0.005) {
+          const daysNeeded = Math.min(365, Math.max(1, Math.round(Math.abs(diffToTarget) / Math.abs(slopePerDay))));
+          const lastDateParts = latestEntry.date.split('-');
+          const lastDateObj = new Date(parseInt(lastDateParts[0]), parseInt(lastDateParts[1]) - 1, parseInt(lastDateParts[2]));
+          const targetDateObj = new Date(lastDateObj);
+          targetDateObj.setDate(lastDateObj.getDate() + daysNeeded);
+
+          const targetDateStr = `${targetDateObj.getDate()} ${monthsShort[targetDateObj.getMonth()]} ${targetDateObj.getFullYear()}`;
+          const weeksNeeded = (daysNeeded / 7).toFixed(1);
+          const weeklyRate = (Math.abs(slopePerDay) * 7).toFixed(2);
+
+          if (badgeEl) badgeEl.innerHTML = `<span>🎯 <strong>${targetDateStr}</strong> (~${weeksNeeded} sett. a -${weeklyRate} ${unitStr}/sett.)</span>`;
+
+          const stepCount = Math.min(daysNeeded, 120);
+          for (let i = 1; i <= stepCount; i++) {
+            const futureD = new Date(lastDateObj);
+            futureD.setDate(lastDateObj.getDate() + i);
+            futureLabels.push(futureD.toISOString().slice(0, 10));
+            const projWeight = Math.max(targetVal, latestMa7 + slopePerDay * i);
+            forecastPoints.push(projWeight);
+          }
+        } else if (diffToTarget > 0 && slopePerDay > 0.005) {
+          const daysNeeded = Math.min(365, Math.max(1, Math.round(diffToTarget / slopePerDay)));
+          const lastDateParts = latestEntry.date.split('-');
+          const lastDateObj = new Date(parseInt(lastDateParts[0]), parseInt(lastDateParts[1]) - 1, parseInt(lastDateParts[2]));
+          const targetDateObj = new Date(lastDateObj);
+          targetDateObj.setDate(lastDateObj.getDate() + daysNeeded);
+
+          const targetDateStr = `${targetDateObj.getDate()} ${monthsShort[targetDateObj.getMonth()]} ${targetDateObj.getFullYear()}`;
+          const weeksNeeded = (daysNeeded / 7).toFixed(1);
+          const weeklyRate = (slopePerDay * 7).toFixed(2);
+
+          if (badgeEl) badgeEl.innerHTML = `<span>🎯 <strong>${targetDateStr}</strong> (~${weeksNeeded} sett. a +${weeklyRate} ${unitStr}/sett.)</span>`;
+
+          const stepCount = Math.min(daysNeeded, 120);
+          for (let i = 1; i <= stepCount; i++) {
+            const futureD = new Date(lastDateObj);
+            futureD.setDate(lastDateObj.getDate() + i);
+            futureLabels.push(futureD.toISOString().slice(0, 10));
+            const projWeight = Math.min(targetVal, latestMa7 + slopePerDay * i);
+            forecastPoints.push(projWeight);
+          }
+        } else {
+          const weeklyRate = (slopePerDay * 7).toFixed(2);
+          if (badgeEl) badgeEl.innerHTML = `<span class="text-amber-400">Trend 7G stabile (${weeklyRate >= 0 ? '+' : ''}${weeklyRate} ${unitStr}/sett.)</span>`;
+        }
+      }
+
+      const allLabels = [...histLabels, ...futureLabels];
+      const paddedWeights = [...weights, ...Array(futureLabels.length).fill(null)];
+      const paddedMa7 = [...ma7, ...Array(futureLabels.length).fill(null)];
+      const paddedMa30 = [...ma30, ...Array(futureLabels.length).fill(null)];
+
+      const forecastSeries = Array(Math.max(0, histLabels.length - 1)).fill(null);
+      if (latestMa7 !== null && forecastPoints.length > 0) {
+        forecastSeries.push(latestMa7);
+        forecastSeries.push(...forecastPoints);
+      } else if (histLabels.length > 0) {
+        forecastSeries.push(null);
+      }
+
+      const targetSeries = Array(allLabels.length).fill(targetVal);
+
+      const allValues = [...paddedWeights, ...paddedMa7, ...paddedMa30, targetVal, ...forecastPoints].filter(v => v !== null && !isNaN(v));
+      const minW = allValues.length > 0 ? Math.floor(Math.min(...allValues) - 1) : undefined;
+      const maxW = allValues.length > 0 ? Math.ceil(Math.max(...allValues) + 1) : undefined;
 
       if (weightChartInstance) {
         weightChartInstance.destroy();
@@ -734,11 +902,11 @@
       weightChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: labels,
+          labels: allLabels,
           datasets: [
             {
-              label: `Peso Giornaliero (${currentUnit})`,
-              data: weights,
+              label: `Peso Giornaliero (${unitStr})`,
+              data: paddedWeights,
               borderColor: '#818cf8',
               backgroundColor: gradient,
               borderWidth: 2.5,
@@ -751,22 +919,42 @@
             },
             {
               label: `Media 7 Giorni`,
-              data: ma7,
+              data: paddedMa7,
               borderColor: '#38bdf8',
-              borderWidth: 2,
-              borderDash: [5, 5],
+              borderWidth: 2.5,
               fill: false,
               tension: 0.3,
               pointRadius: 0,
             },
             {
-              label: `Media 30 Giorni`,
-              data: ma30,
-              borderColor: '#34d399',
+              label: `Forecast Trend 7G`,
+              data: forecastSeries,
+              borderColor: '#06b6d4',
               borderWidth: 2,
-              borderDash: [2, 2],
+              borderDash: [4, 4],
+              fill: false,
+              tension: 0.1,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+            },
+            {
+              label: `Media 30 Giorni`,
+              data: paddedMa30,
+              borderColor: '#34d399',
+              borderWidth: 1.8,
+              borderDash: [3, 3],
               fill: false,
               tension: 0.3,
+              pointRadius: 0,
+            },
+            {
+              label: `Obiettivo (${targetVal.toFixed(1)} ${unitStr})`,
+              data: targetSeries,
+              borderColor: '#f59e0b',
+              borderWidth: 2,
+              borderDash: [6, 4],
+              fill: false,
+              tension: 0,
               pointRadius: 0,
             }
           ]
@@ -794,13 +982,20 @@
               bodyColor: '#cbd5e1',
               borderColor: '#334155',
               borderWidth: 1,
-              padding: 12
+              padding: 12,
+              callbacks: {
+                label: function(context) {
+                  const val = context.parsed.y;
+                  if (val === null || val === undefined) return '';
+                  return `${context.dataset.label}: ${val.toFixed(1)} ${unitStr}`;
+                }
+              }
             }
           },
           scales: {
             x: {
               grid: { color: 'rgba(255, 255, 255, 0.05)' },
-              ticks: { color: '#64748b', maxTicksLimit: 8 }
+              ticks: { color: '#64748b', maxTicksLimit: 10 }
             },
             y: {
               min: minW,
@@ -808,7 +1003,7 @@
               grid: { color: 'rgba(255, 255, 255, 0.05)' },
               ticks: {
                 color: '#64748b',
-                callback: (val) => `${val.toFixed(1)} ${currentUnit}`
+                callback: (val) => `${val.toFixed(1)} ${unitStr}`
               }
             }
           }
