@@ -792,11 +792,16 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
             <h3 class="font-bold text-white text-base sm:text-lg flex items-center space-x-2">
               <span>Distribuzione Settimanale (Box Plot)</span>
             </h3>
-            <p class="text-xs text-slate-400 mt-0.5">Mediana, quartili (Q1/Q3), min/max e singole pesate per ogni settimana</p>
+            <p class="text-xs text-slate-400 mt-0.5">Mediana, quartili (Q1/Q3), min/max, oscillazione e singole pesate per ogni settimana</p>
           </div>
-          <span class="text-xs px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-medium self-start sm:self-auto">
-            Ultima settimana inclusa coi punti disponibili
-          </span>
+          <div class="flex items-center space-x-2 self-start sm:self-auto flex-wrap gap-y-1">
+            <span id="boxplotRangeBadge" class="text-xs px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">
+              Oscillazione media: calcolo...
+            </span>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-medium">
+              Ultima settimana inclusa
+            </span>
+          </div>
         </div>
         <div class="mt-4 sm:mt-6 relative h-[320px] sm:h-[360px] w-full">
           <canvas id="weeklyBoxplotChart"></canvas>
@@ -1732,6 +1737,21 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       const minW = flatWeights.length > 0 ? Math.floor(Math.min(...flatWeights) - 1) : undefined;
       const maxW = flatWeights.length > 0 ? Math.ceil(Math.max(...flatWeights) + 1) : undefined;
 
+      const completedWeeksRanges = sortedWeeks
+        .filter(([_, info]) => info.weights.length >= 3)
+        .map(([_, info]) => Math.max(...info.weights) - Math.min(...info.weights));
+
+      const avgOscillation = completedWeeksRanges.length > 0 
+        ? (completedWeeksRanges.reduce((a, b) => a + b, 0) / completedWeeksRanges.length).toFixed(2)
+        : null;
+
+      const badge = document.getElementById('boxplotRangeBadge');
+      if (badge) {{
+        badge.textContent = avgOscillation !== null 
+          ? `Oscillazione tipica: ~${{avgOscillation}} ${{currentUnit}} (±${{(avgOscillation/2).toFixed(2)}} ${{currentUnit}})`
+          : `Oscillazione tipica: --`;
+      }}
+
       if (weeklyBoxplotInstance) {{
         weeklyBoxplotInstance.destroy();
       }}
@@ -1780,8 +1800,17 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
                   if (!item) return '';
                   const rawArr = sortedWeeks[item.dataIndex][1].weights;
                   const count = rawArr.length;
+                  if (count === 0) return '';
                   const avg = (rawArr.reduce((a, b) => a + b, 0) / count).toFixed(2);
-                  return `Pesate registrate: ${{count}}\\nMedia settimana: ${{avg}} ${{currentUnit}}`;
+                  const minVal = Math.min(...rawArr).toFixed(2);
+                  const maxVal = Math.max(...rawArr).toFixed(2);
+                  const rangeVal = (Math.max(...rawArr) - Math.min(...rawArr)).toFixed(2);
+                  const medVal = getMedian(rawArr).toFixed(2);
+
+                  return `\\nPesate registrate: ${{count}} gg` +
+                         `\\nMediana: ${{medVal}} ${{currentUnit}} (Media: ${{avg}} ${{currentUnit}})` +
+                         `\\nOscillazione (Max - Min): ${{rangeVal}} ${{currentUnit}}` +
+                         `\\n(Min: ${{minVal}} - Max: ${{maxVal}} ${{currentUnit}})`;
                 }}
               }}
             }}
