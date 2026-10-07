@@ -537,6 +537,71 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
     </div>
   </div>
 
+  <!-- GITHUB TOKEN MODAL -->
+  <div id="ghTokenModal" class="fixed inset-0 z-[110] hidden items-center justify-center bg-surface-950/90 backdrop-blur-md p-4 transition-all">
+    <div class="glass-card w-full max-w-md p-6 rounded-3xl shadow-2xl border border-slate-700 space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+          <div class="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl">
+            <i data-lucide="key" class="w-5 h-5"></i>
+          </div>
+          <h3 class="font-bold text-white text-base">Sincronizzazione Manuale</h3>
+        </div>
+        <button onclick="closeGhTokenModal()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-300 leading-relaxed">
+        Per avviare la sincronizzazione Garmin con un click, inserisci il tuo <strong>GitHub Personal Access Token (PAT)</strong> con permesso <code>workflow</code> / <code>actions</code>. Il token rimane salvato esclusivamente nel tuo browser.
+      </p>
+
+      <form onsubmit="saveGhTokenAndSync(event)" class="space-y-3">
+        <div>
+          <label class="text-[11px] font-semibold text-slate-400 block mb-1">GitHub Token (Classic o Fine-Grained)</label>
+          <input 
+            type="password" 
+            id="ghTokenInput" 
+            placeholder="ghp_... oppure github_pat_..."
+            required
+            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:border-indigo-500 text-white text-xs outline-none font-mono"
+          />
+        </div>
+
+        <div class="flex items-center justify-between text-[11px] text-slate-400">
+          <a href="https://github.com/settings/tokens/new?scopes=workflow&description=MyWeight+Dashboard+Sync" target="_blank" class="text-cyan-400 hover:underline flex items-center space-x-1">
+            <span>Crea token su GitHub (1 click)</span>
+            <i data-lucide="external-link" class="w-3 h-3"></i>
+          </a>
+        </div>
+
+        <div class="flex space-x-2 pt-2">
+          <button 
+            type="button" 
+            onclick="closeGhTokenModal()" 
+            class="w-1/2 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition"
+          >
+            Annulla
+          </button>
+          <button 
+            type="submit" 
+            class="w-1/2 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition flex items-center justify-center space-x-1.5 shadow-lg shadow-indigo-600/30"
+          >
+            <span>Salva e Avvia</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </form>
+
+      <div class="pt-2 border-t border-slate-800 text-center">
+        <a href="https://github.com/lucacozzuto/my_weight/actions/workflows/fetch_and_publish.yml" target="_blank" class="text-[11px] text-slate-400 hover:text-white flex items-center justify-center space-x-1">
+          <span>Oppure avvia manualmente su GitHub Actions</span>
+          <i data-lucide="external-link" class="w-3 h-3"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
   <!-- DASHBOARD WRAPPER -->
   <div id="dashboardContent" class="opacity-0 transition-opacity duration-300">
     
@@ -554,6 +619,17 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         </div>
 
         <div class="flex items-center space-x-2 sm:space-x-3">
+          <!-- Sync Button -->
+          <button 
+            id="btnSyncNow" 
+            onclick="triggerManualSync()" 
+            title="Sincronizza con Garmin Connect"
+            class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-sm"
+          >
+            <i data-lucide="refresh-cw" id="syncIcon" class="w-3.5 h-3.5"></i>
+            <span id="syncText">Sincronizza</span>
+          </button>
+
           <!-- Unit Toggle -->
           <div class="bg-slate-800 p-1 rounded-lg flex items-center border border-slate-700 text-xs font-semibold">
             <button id="btnKg" onclick="setUnit('kg')" class="px-2.5 py-1 rounded-md bg-indigo-600 text-white transition">kg</button>
@@ -765,39 +841,20 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         </div>
       </div>
 
-      <!-- Secondary Charts Grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
-          <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-            <div>
-              <h3 class="font-bold text-white text-sm sm:text-base">Composizione Corporea nel Tempo</h3>
-              <p class="text-xs text-slate-400">Grasso % e Acqua %</p>
-            </div>
-            <div class="p-1.5 bg-purple-500/10 text-purple-400 rounded-lg">
-              <i data-lucide="pie-chart" class="w-4 h-4"></i>
-            </div>
+      <!-- Body Composition Chart Section -->
+      <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div>
+            <h3 class="font-bold text-white text-sm sm:text-base">Composizione Corporea nel Tempo</h3>
+            <p class="text-xs text-slate-400">Grasso % e Acqua %</p>
           </div>
-          <div class="mt-4 relative h-[240px] sm:h-[260px] w-full">
-            <canvas id="compositionChart"></canvas>
+          <div class="p-1.5 bg-purple-500/10 text-purple-400 rounded-lg">
+            <i data-lucide="pie-chart" class="w-4 h-4"></i>
           </div>
         </div>
-
-        <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
-          <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-            <div>
-              <h3 class="font-bold text-white text-sm sm:text-base">Media per Giorno della Settimana</h3>
-              <p class="text-xs text-slate-400">Distribuzione delle fluttuazioni</p>
-            </div>
-            <div class="p-1.5 bg-cyan-500/10 text-cyan-400 rounded-lg">
-              <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
-            </div>
-          </div>
-          <div class="mt-4 relative h-[240px] sm:h-[260px] w-full">
-            <canvas id="weekdayChart"></canvas>
-          </div>
+        <div class="mt-4 relative h-[240px] sm:h-[260px] w-full">
+          <canvas id="compositionChart"></canvas>
         </div>
-
       </div>
 
       <!-- Data Table Section -->
@@ -851,8 +908,93 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
     let targetWeightKg = 80.0;
     let weightChartInstance = null;
     let compChartInstance = null;
-    let weekdayChartInstance = null;
     let weeklyBoxplotInstance = null;
+
+    function showGhTokenModal() {{
+      const modal = document.getElementById('ghTokenModal');
+      const input = document.getElementById('ghTokenInput');
+      const saved = localStorage.getItem('my_weight_gh_token') || '';
+      input.value = saved;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }}
+
+    function closeGhTokenModal() {{
+      const modal = document.getElementById('ghTokenModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }}
+
+    function saveGhTokenAndSync(e) {{
+      if (e) e.preventDefault();
+      const token = document.getElementById('ghTokenInput').value.trim();
+      if (token) {{
+        localStorage.setItem('my_weight_gh_token', token);
+        closeGhTokenModal();
+        triggerManualSync();
+      }}
+    }}
+
+    async function triggerManualSync() {{
+      const token = localStorage.getItem('my_weight_gh_token');
+      if (!token) {{
+        showGhTokenModal();
+        return;
+      }}
+
+      const btn = document.getElementById('btnSyncNow');
+      const icon = document.getElementById('syncIcon');
+      const text = document.getElementById('syncText');
+      btn.disabled = true;
+      btn.classList.add('opacity-75', 'cursor-not-allowed');
+      if (icon) icon.classList.add('animate-spin');
+      text.textContent = 'Avvio sync...';
+
+      try {{
+        const resp = await fetch('https://api.github.com/repos/lucacozzuto/my_weight/actions/workflows/fetch_and_publish.yml/dispatches', {{
+          method: 'POST',
+          headers: {{
+            'Accept': 'application/vnd.github+json',
+            'Authorization': `Bearer ${{token}}`,
+            'X-GitHub-Api-Version': '2022-11-28'
+          }},
+          body: JSON.stringify({{ ref: 'main' }})
+        }});
+
+        if (resp.status === 204 || resp.ok) {{
+          let count = 45;
+          text.textContent = `Sync in corso (~${{count}}s)...`;
+          const timer = setInterval(() => {{
+            count--;
+            if (count > 0) {{
+              text.textContent = `Sync in corso (~${{count}}s)...`;
+            }} else {{
+              clearInterval(timer);
+              text.textContent = 'Ricarico...';
+              window.location.reload();
+            }}
+          }}, 1000);
+        }} else if (resp.status === 401 || resp.status === 403) {{
+          localStorage.removeItem('my_weight_gh_token');
+          alert('Token GitHub non valido o senza permessi "workflow/actions". Reinseriscilo.');
+          btn.disabled = false;
+          btn.classList.remove('opacity-75', 'cursor-not-allowed');
+          if (icon) icon.classList.remove('animate-spin');
+          text.textContent = 'Sincronizza';
+          showGhTokenModal();
+        }} else {{
+          const err = await resp.text();
+          throw new Error(`HTTP ${{resp.status}}: ${{err}}`);
+        }}
+      }} catch (err) {{
+        console.error('Manual sync failed:', err);
+        alert(`Errore nell'avvio della sincronizzazione: ${{err.message}}`);
+        btn.disabled = false;
+        btn.classList.remove('opacity-75', 'cursor-not-allowed');
+        if (icon) icon.classList.remove('animate-spin');
+        text.textContent = 'Sincronizza';
+      }}
+    }}
 
     function setTargetWeight(val) {{
       const num = parseFloat(val);
@@ -1498,61 +1640,6 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       }});
     }}
 
-    function renderWeekdayChart() {{
-      const ctx = document.getElementById('weekdayChart').getContext('2d');
-      const weekdays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
-      const sums = [0,0,0,0,0,0,0];
-      const counts = [0,0,0,0,0,0,0];
-      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
-
-      RAW_DATA.forEach(d => {{
-        const dt = new Date(d.date);
-        let day = dt.getDay() - 1;
-        if (day === -1) day = 6;
-        if (d.weight_kg) {{
-          sums[day] += (d.weight_kg * mult);
-          counts[day] += 1;
-        }}
-      }});
-
-      const avgs = sums.map((s, i) => counts[i] > 0 ? (s / counts[i]).toFixed(2) : null);
-      const validAvgs = avgs.filter(v => v !== null).map(Number);
-      const minW = validAvgs.length > 0 ? Math.floor(Math.min(...validAvgs) - 0.5) : undefined;
-      const maxW = validAvgs.length > 0 ? Math.ceil(Math.max(...validAvgs) + 0.5) : undefined;
-
-      if (weekdayChartInstance) weekdayChartInstance.destroy();
-
-      weekdayChartInstance = new Chart(ctx, {{
-        type: 'bar',
-        data: {{
-          labels: weekdays,
-          datasets: [{{
-            label: `Media per Giorno (${{currentUnit}})`,
-            data: avgs,
-            backgroundColor: 'rgba(56, 189, 248, 0.6)',
-            borderColor: '#38bdf8',
-            borderWidth: 1,
-            borderRadius: 6
-          }}]
-        }},
-        options: {{
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {{
-            legend: {{ labels: {{ color: '#94a3b8', boxWidth: 12 }} }}
-          }},
-          scales: {{
-            x: {{ grid: {{ display: false }}, ticks: {{ color: '#64748b' }} }},
-            y: {{
-              min: minW,
-              max: maxW,
-              grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
-              ticks: {{ color: '#64748b', callback: (v) => `${{Number(v).toFixed(1)}} ${{currentUnit}}` }}
-            }}
-          }}
-        }}
-      }});
-    }}
 
     function renderWeeklyBoxplot() {{
       const canvas = document.getElementById('weeklyBoxplotChart');
@@ -1698,7 +1785,6 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       try {{ renderMainChart(); }} catch (e) {{ console.error("Error rendering main chart:", e); }}
       try {{ renderWeeklyBoxplot(); }} catch (e) {{ console.error("Error rendering weekly boxplot:", e); }}
       try {{ renderCompositionChart(); }} catch (e) {{ console.error("Error rendering composition chart:", e); }}
-      try {{ renderWeekdayChart(); }} catch (e) {{ console.error("Error rendering weekday chart:", e); }}
     }}
 
     function renderTable() {{
