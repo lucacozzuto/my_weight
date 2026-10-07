@@ -890,17 +890,17 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
           </div>
         </div>
 
-        <!-- Weekly Fat Loss Chart Card -->
+        <!-- Weekly Fat Mass Trend Chart Card -->
         <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 sm:pb-4 border-b border-slate-800">
             <div>
               <h3 class="font-bold text-white text-base sm:text-lg flex items-center space-x-2">
-                <span>Variazione Settimanale Massa Grassa (Stima BIA)</span>
+                <span>Progressione Settimanale Massa Grassa Stimata</span>
               </h3>
-              <p class="text-xs text-slate-400 mt-0.5">Differenza di massa grassa stimata (Mediana Peso × Mediana Grasso %) per ogni settimana rispetto alla precedente</p>
+              <p class="text-xs text-slate-400 mt-0.5">Stima in kg per ogni settimana (Mediana Peso × Mediana Grasso %)</p>
             </div>
             <span class="text-xs px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 font-medium self-start sm:self-auto">
-              Delta settimanale &bull; Mediana BIA
+              Stima settimanale &bull; Mediana BIA
             </span>
           </div>
           <div class="mt-4 sm:mt-6 relative h-[280px] sm:h-[320px] w-full">
@@ -1844,12 +1844,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
 
       const monthsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
       const labels = [];
-      const deltaBars = [];
       const totalFatMassLine = [];
-      const barBgColors = [];
-      const barBorderColors = [];
-
-      let prevFatMass = null;
 
       sortedWeeks.forEach(([key, info], idx) => {{
         const isCurrentWeek = (idx === sortedWeeks.length - 1);
@@ -1864,66 +1859,41 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         if (medW !== null && medF !== null) {{
           const fatMass = medW * (medF / 100);
           totalFatMassLine.push(parseFloat(fatMass.toFixed(2)));
-
-          if (prevFatMass !== null) {{
-            const delta = fatMass - prevFatMass;
-            deltaBars.push(parseFloat(delta.toFixed(2)));
-
-            if (delta < 0) {{
-              barBgColors.push(isCurrentWeek ? 'rgba(52, 211, 153, 0.4)' : 'rgba(52, 211, 153, 0.65)');
-              barBorderColors.push('#34d399');
-            }} else if (delta > 0) {{
-              barBgColors.push(isCurrentWeek ? 'rgba(244, 63, 94, 0.4)' : 'rgba(244, 63, 94, 0.65)');
-              barBorderColors.push('#f43f5e');
-            }} else {{
-              barBgColors.push('rgba(148, 163, 184, 0.5)');
-              barBorderColors.push('#94a3b8');
-            }}
-          }} else {{
-            // Prima settimana come baseline
-            deltaBars.push(0);
-            barBgColors.push('rgba(148, 163, 184, 0.3)');
-            barBorderColors.push('#94a3b8');
-          }}
-          prevFatMass = fatMass;
         }} else {{
           totalFatMassLine.push(null);
-          deltaBars.push(null);
-          barBgColors.push('transparent');
-          barBorderColors.push('transparent');
         }}
       }});
+
+      const validFatVals = totalFatMassLine.filter(v => v !== null && !isNaN(v));
+      const minFat = validFatVals.length > 0 ? Math.floor(Math.min(...validFatVals) - 0.5) : undefined;
+      const maxFat = validFatVals.length > 0 ? Math.ceil(Math.max(...validFatVals) + 0.5) : undefined;
 
       if (weeklyFatLossInstance) {{
         weeklyFatLossInstance.destroy();
       }}
 
+      const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+      gradient.addColorStop(0, 'rgba(168, 85, 247, 0.35)');
+      gradient.addColorStop(1, 'rgba(168, 85, 247, 0.0)');
+
       weeklyFatLossInstance = new Chart(ctx, {{
+        type: 'line',
         data: {{
           labels: labels,
           datasets: [
             {{
-              type: 'bar',
-              label: `Variazione Grasso vs Sett. Prec. (${{unitStr}})`,
-              data: deltaBars,
-              backgroundColor: barBgColors,
-              borderColor: barBorderColors,
-              borderWidth: 1.5,
-              borderRadius: 6,
-              yAxisID: 'yDelta'
-            }},
-            {{
-              type: 'line',
               label: `Massa Grassa Totale Stimata (${{unitStr}})`,
               data: totalFatMassLine,
-              borderColor: '#a855f7',
-              backgroundColor: 'rgba(168, 85, 247, 0.1)',
+              borderColor: '#c084fc',
+              backgroundColor: gradient,
               borderWidth: 2.5,
-              tension: 0.2,
+              fill: true,
+              tension: 0.25,
               pointBackgroundColor: '#a855f7',
               pointBorderColor: '#ffffff',
-              pointRadius: 4,
-              yAxisID: 'yTotal'
+              pointBorderWidth: 1.5,
+              pointRadius: 4.5,
+              pointHoverRadius: 6.5
             }}
           ]
         }},
@@ -1936,10 +1906,10 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
           }},
           plugins: {{
             legend: {{
+              display: true,
               labels: {{
                 color: '#94a3b8',
                 boxWidth: 12,
-                usePointStyle: true,
                 font: {{ family: 'Inter', size: 12 }}
               }}
             }},
@@ -1954,15 +1924,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
                 label: function(context) {{
                   const val = context.parsed.y;
                   if (val === null || val === undefined) return '';
-                  if (context.datasetIndex === 1) {{
-                    return `Massa Grassa Totale: ${{val.toFixed(2)}} ${{unitStr}}`;
-                  }}
-                  if (context.dataIndex === 0) {{
-                    return `Settimana Iniziale (Baseline: 0.00 ${{unitStr}})`;
-                  }}
-                  const sign = val > 0 ? '+' : '';
-                  const diffWord = val < 0 ? ` (${{Math.abs(val).toFixed(2)}} ${{unitStr}} persi)` : val > 0 ? ` (+${{val.toFixed(2)}} ${{unitStr}} presi)` : '';
-                  return `Diff. vs Sett. Prec.: ${{sign}}${{val.toFixed(2)}} ${{unitStr}}${{diffWord}}`;
+                  return `Massa Grassa: ${{val.toFixed(2)}} ${{unitStr}}`;
                 }},
                 afterBody: function(context) {{
                   const item = context[0];
@@ -1971,8 +1933,15 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
                   const wInfo = sortedWeeks[idx][1];
                   const medW = getMedian(wInfo.weights);
                   const medF = getMedian(wInfo.bodyFats);
+                  let extra = '';
+                  if (idx > 0 && totalFatMassLine[idx] !== null && totalFatMassLine[idx - 1] !== null) {{
+                    const diff = totalFatMassLine[idx] - totalFatMassLine[idx - 1];
+                    const diffSign = diff > 0 ? '+' : '';
+                    const diffWord = diff < 0 ? ` (${{Math.abs(diff).toFixed(2)}} ${{unitStr}} persi)` : diff > 0 ? ` (+${{diff.toFixed(2)}} ${{unitStr}} presi)` : '';
+                    extra = `\\nDiff. vs Sett. Prec.: ${{diffSign}}${{diff.toFixed(2)}} ${{unitStr}}${{diffWord}}`;
+                  }}
                   if (medW !== null && medF !== null) {{
-                    return `Pesate: ${{wInfo.weights.length}} gg\\nMediana Peso: ${{medW.toFixed(1)}} ${{unitStr}}\\nMediana Grasso: ${{medF.toFixed(1)}}%`;
+                    return `Pesate: ${{wInfo.weights.length}} gg\\nMediana Peso: ${{medW.toFixed(1)}} ${{unitStr}}\\nMediana Grasso: ${{medF.toFixed(1)}}%${{extra}}`;
                   }}
                   return '';
                 }}
@@ -1984,33 +1953,18 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
               grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
               ticks: {{ color: '#94a3b8', font: {{ family: 'Inter', size: 11 }} }}
             }},
-            yDelta: {{
-              type: 'linear',
-              position: 'left',
+            y: {{
+              min: minFat,
+              max: maxFat,
               grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
               ticks: {{
-                color: '#64748b',
-                callback: (v) => `${{v > 0 ? '+' : ''}}${{Number(v).toFixed(2)}} ${{unitStr}}`
-              }},
-              title: {{
-                display: true,
-                text: `Δ Grasso (${{unitStr}})`,
-                color: '#64748b',
-                font: {{ size: 11 }}
-              }}
-            }},
-            yTotal: {{
-              type: 'linear',
-              position: 'right',
-              grid: {{ drawOnChartArea: false }},
-              ticks: {{
-                color: '#a855f7',
+                color: '#c084fc',
                 callback: (v) => `${{Number(v).toFixed(1)}} ${{unitStr}}`
               }},
               title: {{
                 display: true,
-                text: `Totale (${{unitStr}})`,
-                color: '#a855f7',
+                text: `Massa Grassa (${{unitStr}})`,
+                color: '#c084fc',
                 font: {{ size: 11 }}
               }}
             }}
