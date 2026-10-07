@@ -646,44 +646,6 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
 
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
-      
-      <!-- Stima Massa Grassa Persa Card -->
-      <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm border border-indigo-500/20 bg-gradient-to-r from-indigo-950/40 via-surface-900/60 to-purple-950/40">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div class="flex items-center space-x-3.5">
-            <div class="p-2.5 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30">
-              <i data-lucide="flame" class="w-6 h-6"></i>
-            </div>
-            <div>
-              <div class="flex items-center space-x-2 flex-wrap gap-y-1">
-                <h3 class="font-bold text-white text-base sm:text-lg">Stima Massa Grassa Persa</h3>
-                <span id="fatLossPeriodTag" class="text-[11px] px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">Inizializzazione...</span>
-              </div>
-              <p class="text-xs text-slate-400 mt-0.5" id="fatLossSubtitle">Calcolo: Mediana Peso × Mediana Grasso % (1ª Settimana vs Settimana di Riferimento)</p>
-            </div>
-          </div>
-
-          <div class="flex items-center bg-slate-900/90 px-4 py-3 rounded-xl border border-slate-700/60 space-x-3 sm:space-x-4 self-start md:self-auto font-mono text-xs sm:text-sm">
-            <div class="text-left">
-              <span class="text-[10px] uppercase text-slate-400 block font-sans font-semibold">1ª Settimana</span>
-              <span id="fatStartDateRange" class="text-[10px] text-slate-500 block font-sans">--</span>
-              <span id="fatStartVal" class="font-bold text-slate-200 text-sm sm:text-base mt-0.5 block">--</span>
-            </div>
-            <span class="text-slate-500 text-lg font-bold">−</span>
-            <div class="text-left">
-              <span class="text-[10px] uppercase text-slate-400 block font-sans font-semibold" id="fatCurrLabel">Sett. Usata</span>
-              <span id="fatCurrDateRange" class="text-[10px] text-cyan-400 block font-sans font-medium">--</span>
-              <span id="fatCurrVal" class="font-bold text-slate-200 text-sm sm:text-base mt-0.5 block">--</span>
-            </div>
-            <span class="text-slate-500 text-lg font-bold">=</span>
-            <div class="text-left">
-              <span class="text-[10px] uppercase text-slate-400 block font-sans font-semibold">Differenza</span>
-              <span id="fatDiffDesc" class="text-[10px] text-slate-500 block font-sans">--</span>
-              <span id="fatDiffVal" class="font-extrabold text-sm sm:text-base text-emerald-400 mt-0.5 block">--</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- Metric Stat Cards Grid -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
@@ -887,6 +849,67 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         </div>
       </div>
 
+      <!-- Stima Massa Grassa Persa & Variazione Settimanale Section -->
+      <div class="space-y-6">
+        
+        <!-- Stima Massa Grassa Persa Card -->
+        <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm border border-indigo-500/20 bg-gradient-to-r from-indigo-950/40 via-surface-900/60 to-purple-950/40">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div class="flex items-center space-x-3.5">
+              <div class="p-2.5 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+                <i data-lucide="flame" class="w-6 h-6"></i>
+              </div>
+              <div>
+                <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                  <h3 class="font-bold text-white text-base sm:text-lg">Stima Massa Grassa Persa</h3>
+                  <span id="fatLossPeriodTag" class="text-[11px] px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">Inizializzazione...</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-0.5" id="fatLossSubtitle">Calcolo: Mediana Peso × Mediana Grasso % (1ª Settimana vs Settimana di Riferimento)</p>
+              </div>
+            </div>
+
+            <div class="flex items-center bg-slate-900/90 px-4 py-3 rounded-xl border border-slate-700/60 space-x-3 sm:space-x-4 self-start md:self-auto font-mono text-xs sm:text-sm">
+              <div class="text-left">
+                <span class="text-[10px] uppercase text-slate-400 block font-sans font-semibold">1ª Settimana</span>
+                <span id="fatStartDateRange" class="text-[10px] text-slate-500 block font-sans">--</span>
+                <span id="fatStartVal" class="font-bold text-slate-200 text-sm sm:text-base mt-0.5 block">--</span>
+              </div>
+              <span class="text-slate-500 text-lg font-bold">−</span>
+              <div class="text-left">
+                <span class="text-[10px] uppercase text-slate-400 block font-sans font-semibold" id="fatCurrLabel">Sett. Usata</span>
+                <span id="fatCurrDateRange" class="text-[10px] text-cyan-400 block font-sans font-medium">--</span>
+                <span id="fatCurrVal" class="font-bold text-slate-200 text-sm sm:text-base mt-0.5 block">--</span>
+              </div>
+              <span class="text-slate-500 text-lg font-bold">=</span>
+              <div class="text-left">
+                <span class="text-[10px] uppercase text-slate-400 block font-sans font-semibold">Differenza</span>
+                <span id="fatDiffDesc" class="text-[10px] text-slate-500 block font-sans">--</span>
+                <span id="fatDiffVal" class="font-extrabold text-sm sm:text-base text-emerald-400 mt-0.5 block">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weekly Fat Loss Chart Card -->
+        <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 sm:pb-4 border-b border-slate-800">
+            <div>
+              <h3 class="font-bold text-white text-base sm:text-lg flex items-center space-x-2">
+                <span>Variazione Settimanale Massa Grassa (Stima BIA)</span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Differenza di massa grassa stimata (Mediana Peso × Mediana Grasso %) per ogni settimana rispetto alla precedente</p>
+            </div>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 font-medium self-start sm:self-auto">
+              Delta settimanale &bull; Mediana BIA
+            </span>
+          </div>
+          <div class="mt-4 sm:mt-6 relative h-[280px] sm:h-[320px] w-full">
+            <canvas id="weeklyFatLossChart"></canvas>
+          </div>
+        </div>
+
+      </div>
+
     </main>
 
     <!-- Footer -->
@@ -909,6 +932,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
     let weightChartInstance = null;
     let compChartInstance = null;
     let weeklyBoxplotInstance = null;
+    let weeklyFatLossInstance = null;
 
     function showGhTokenModal() {{
       const modal = document.getElementById('ghTokenModal');
@@ -1781,10 +1805,225 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       }});
     }}
 
+    function renderWeeklyFatLossChart() {{
+      const canvas = document.getElementById('weeklyFatLossChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!RAW_DATA || RAW_DATA.length === 0) return;
+
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+      const unitStr = currentUnit;
+
+      const weeksMap = new Map();
+      RAW_DATA.forEach(entry => {{
+        if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
+        const parts = entry.date.split('-');
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const dayOfWeek = (d.getDay() + 6) % 7;
+        const mon = new Date(d);
+        mon.setDate(d.getDate() - dayOfWeek);
+        const sun = new Date(mon);
+        sun.setDate(mon.getDate() + 6);
+        const key = mon.toISOString().slice(0, 10);
+        if (!weeksMap.has(key)) {{
+          weeksMap.set(key, {{
+            monday: mon,
+            sunday: sun,
+            weights: [],
+            bodyFats: []
+          }});
+        }}
+        weeksMap.get(key).weights.push(entry.weight_kg * mult);
+        if (entry.body_fat_pct !== null && entry.body_fat_pct !== undefined && !isNaN(entry.body_fat_pct)) {{
+          weeksMap.get(key).bodyFats.push(entry.body_fat_pct);
+        }}
+      }});
+
+      const sortedWeeks = Array.from(weeksMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      if (sortedWeeks.length === 0) return;
+
+      const monthsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+      const labels = [];
+      const deltaBars = [];
+      const totalFatMassLine = [];
+      const barBgColors = [];
+      const barBorderColors = [];
+
+      let prevFatMass = null;
+
+      sortedWeeks.forEach(([key, info], idx) => {{
+        const isCurrentWeek = (idx === sortedWeeks.length - 1);
+        const monStr = `${{info.monday.getDate()}} ${{monthsShort[info.monday.getMonth()]}}`;
+        const sunStr = `${{info.sunday.getDate()}} ${{monthsShort[info.sunday.getMonth()]}}`;
+        const label = `${{monStr}} - ${{sunStr}}${{isCurrentWeek ? ' (in corso)' : ''}}`;
+        labels.push(label);
+
+        const medW = getMedian(info.weights);
+        const medF = getMedian(info.bodyFats);
+
+        if (medW !== null && medF !== null) {{
+          const fatMass = medW * (medF / 100);
+          totalFatMassLine.push(parseFloat(fatMass.toFixed(2)));
+
+          if (prevFatMass !== null) {{
+            const delta = fatMass - prevFatMass;
+            deltaBars.push(parseFloat(delta.toFixed(2)));
+
+            if (delta < 0) {{
+              barBgColors.push(isCurrentWeek ? 'rgba(52, 211, 153, 0.4)' : 'rgba(52, 211, 153, 0.65)');
+              barBorderColors.push('#34d399');
+            }} else if (delta > 0) {{
+              barBgColors.push(isCurrentWeek ? 'rgba(244, 63, 94, 0.4)' : 'rgba(244, 63, 94, 0.65)');
+              barBorderColors.push('#f43f5e');
+            }} else {{
+              barBgColors.push('rgba(148, 163, 184, 0.5)');
+              barBorderColors.push('#94a3b8');
+            }}
+          }} else {{
+            // Prima settimana come baseline
+            deltaBars.push(0);
+            barBgColors.push('rgba(148, 163, 184, 0.3)');
+            barBorderColors.push('#94a3b8');
+          }}
+          prevFatMass = fatMass;
+        }} else {{
+          totalFatMassLine.push(null);
+          deltaBars.push(null);
+          barBgColors.push('transparent');
+          barBorderColors.push('transparent');
+        }}
+      }});
+
+      if (weeklyFatLossInstance) {{
+        weeklyFatLossInstance.destroy();
+      }}
+
+      weeklyFatLossInstance = new Chart(ctx, {{
+        data: {{
+          labels: labels,
+          datasets: [
+            {{
+              type: 'bar',
+              label: `Variazione Grasso vs Sett. Prec. (${{unitStr}})`,
+              data: deltaBars,
+              backgroundColor: barBgColors,
+              borderColor: barBorderColors,
+              borderWidth: 1.5,
+              borderRadius: 6,
+              yAxisID: 'yDelta'
+            }},
+            {{
+              type: 'line',
+              label: `Massa Grassa Totale Stimata (${{unitStr}})`,
+              data: totalFatMassLine,
+              borderColor: '#a855f7',
+              backgroundColor: 'rgba(168, 85, 247, 0.1)',
+              borderWidth: 2.5,
+              tension: 0.2,
+              pointBackgroundColor: '#a855f7',
+              pointBorderColor: '#ffffff',
+              pointRadius: 4,
+              yAxisID: 'yTotal'
+            }}
+          ]
+        }},
+        options: {{
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {{
+            mode: 'index',
+            intersect: false
+          }},
+          plugins: {{
+            legend: {{
+              labels: {{
+                color: '#94a3b8',
+                boxWidth: 12,
+                usePointStyle: true,
+                font: {{ family: 'Inter', size: 12 }}
+              }}
+            }},
+            tooltip: {{
+              backgroundColor: '#0f172a',
+              titleColor: '#f8fafc',
+              bodyColor: '#cbd5e1',
+              borderColor: '#334155',
+              borderWidth: 1,
+              padding: 12,
+              callbacks: {{
+                label: function(context) {{
+                  const val = context.parsed.y;
+                  if (val === null || val === undefined) return '';
+                  if (context.datasetIndex === 1) {{
+                    return `Massa Grassa Totale: ${{val.toFixed(2)}} ${{unitStr}}`;
+                  }}
+                  if (context.dataIndex === 0) {{
+                    return `Settimana Iniziale (Baseline: 0.00 ${{unitStr}})`;
+                  }}
+                  const sign = val > 0 ? '+' : '';
+                  const diffWord = val < 0 ? ` (${{Math.abs(val).toFixed(2)}} ${{unitStr}} persi)` : val > 0 ? ` (+${{val.toFixed(2)}} ${{unitStr}} presi)` : '';
+                  return `Diff. vs Sett. Prec.: ${{sign}}${{val.toFixed(2)}} ${{unitStr}}${{diffWord}}`;
+                }},
+                afterBody: function(context) {{
+                  const item = context[0];
+                  if (!item) return '';
+                  const idx = item.dataIndex;
+                  const wInfo = sortedWeeks[idx][1];
+                  const medW = getMedian(wInfo.weights);
+                  const medF = getMedian(wInfo.bodyFats);
+                  if (medW !== null && medF !== null) {{
+                    return `Pesate: ${{wInfo.weights.length}} gg\\nMediana Peso: ${{medW.toFixed(1)}} ${{unitStr}}\\nMediana Grasso: ${{medF.toFixed(1)}}%`;
+                  }}
+                  return '';
+                }}
+              }}
+            }}
+          }},
+          scales: {{
+            x: {{
+              grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
+              ticks: {{ color: '#94a3b8', font: {{ family: 'Inter', size: 11 }} }}
+            }},
+            yDelta: {{
+              type: 'linear',
+              position: 'left',
+              grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
+              ticks: {{
+                color: '#64748b',
+                callback: (v) => `${{v > 0 ? '+' : ''}}${{Number(v).toFixed(2)}} ${{unitStr}}`
+              }},
+              title: {{
+                display: true,
+                text: `Δ Grasso (${{unitStr}})`,
+                color: '#64748b',
+                font: {{ size: 11 }}
+              }}
+            }},
+            yTotal: {{
+              type: 'linear',
+              position: 'right',
+              grid: {{ drawOnChartArea: false }},
+              ticks: {{
+                color: '#a855f7',
+                callback: (v) => `${{Number(v).toFixed(1)}} ${{unitStr}}`
+              }},
+              title: {{
+                display: true,
+                text: `Totale (${{unitStr}})`,
+                color: '#a855f7',
+                font: {{ size: 11 }}
+              }}
+            }}
+          }}
+        }}
+      }});
+    }}
+
     function renderCharts() {{
       try {{ renderMainChart(); }} catch (e) {{ console.error("Error rendering main chart:", e); }}
       try {{ renderWeeklyBoxplot(); }} catch (e) {{ console.error("Error rendering weekly boxplot:", e); }}
       try {{ renderCompositionChart(); }} catch (e) {{ console.error("Error rendering composition chart:", e); }}
+      try {{ renderWeeklyFatLossChart(); }} catch (e) {{ console.error("Error rendering weekly fat loss chart:", e); }}
     }}
 
     function renderTable() {{
