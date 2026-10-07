@@ -428,63 +428,129 @@
         </div>
       </div>
 
-      <!-- Stima Massa Grassa Persa & Variazione Settimanale Section -->
+      <!-- Stima Massa Grassa & Massa Muscolare Section -->
       <div class="space-y-6">
         
-        <!-- Stima Massa Grassa Persa Card -->
-        <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm border border-indigo-500/20 bg-gradient-to-r from-indigo-950/40 via-surface-900/60 to-purple-950/40">
-          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div class="flex items-center space-x-3.5">
-              <div class="p-2.5 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30">
-                <i data-lucide="flame" class="w-6 h-6"></i>
-              </div>
-              <div>
-                <div class="flex items-center space-x-2 flex-wrap gap-y-1">
-                  <h3 class="font-bold text-white text-base sm:text-lg">Stima Massa Grassa Persa</h3>
-                  <span id="fatLossPeriodTag" class="text-[11px] px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">Inizializzazione...</span>
-                </div>
-                <p class="text-xs text-slate-400 mt-0.5" id="fatLossSubtitle">Calcolo: Mediana Peso × Mediana Grasso % (1ª Settimana vs Settimana di Riferimento)</p>
-              </div>
-            </div>
+        <!-- Cards Grid (Fat & Muscle) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            <div class="flex items-center bg-slate-900/90 px-4 py-3 rounded-xl border border-slate-700/60 space-x-3 sm:space-x-4 self-start md:self-auto font-mono text-xs sm:text-sm">
-              <div class="text-left">
-                <span class="text-[10px] uppercase text-slate-400 block font-sans font-semibold">1ª Settimana</span>
-                <span id="fatStartDateRange" class="text-[10px] text-slate-500 block font-sans">--</span>
-                <span id="fatStartVal" class="font-bold text-slate-200 text-sm sm:text-base mt-0.5 block">--</span>
+          <!-- Stima Massa Grassa Persa Card -->
+          <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm border border-indigo-500/20 bg-gradient-to-r from-indigo-950/40 via-surface-900/60 to-purple-950/40">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+                  <i data-lucide="flame" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+                </div>
+                <div>
+                  <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                    <h3 class="font-bold text-white text-sm sm:text-base">Stima Massa Grassa Persa</h3>
+                    <span id="fatLossPeriodTag" class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">Inizializzazione...</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 mt-0.5">Mediana Peso × Mediana Grasso %</p>
+                </div>
               </div>
-              <span class="text-slate-500 text-lg font-bold">−</span>
-              <div class="text-left">
-                <span class="text-[10px] uppercase text-slate-400 block font-sans font-semibold" id="fatCurrLabel">Sett. Usata</span>
-                <span id="fatCurrDateRange" class="text-[10px] text-cyan-400 block font-sans font-medium">--</span>
-                <span id="fatCurrVal" class="font-bold text-slate-200 text-sm sm:text-base mt-0.5 block">--</span>
-              </div>
-              <span class="text-slate-500 text-lg font-bold">=</span>
-              <div class="text-left">
-                <span class="text-[10px] uppercase text-slate-400 block font-sans font-semibold">Differenza</span>
-                <span id="fatDiffDesc" class="text-[10px] text-slate-500 block font-sans">--</span>
-                <span id="fatDiffVal" class="font-extrabold text-sm sm:text-base text-emerald-400 mt-0.5 block">--</span>
+
+              <div class="flex items-center bg-slate-900/90 px-3 py-2 rounded-xl border border-slate-700/60 space-x-2 sm:space-x-3 self-start sm:self-auto font-mono text-xs">
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold">1ª Sett.</span>
+                  <span id="fatStartDateRange" class="text-[9px] text-slate-500 block font-sans">--</span>
+                  <span id="fatStartVal" class="font-bold text-slate-200 text-xs sm:text-sm mt-0.5 block">--</span>
+                </div>
+                <span class="text-slate-500 text-sm font-bold">−</span>
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold" id="fatCurrLabel">Sett. Usata</span>
+                  <span id="fatCurrDateRange" class="text-[9px] text-cyan-400 block font-sans font-medium">--</span>
+                  <span id="fatCurrVal" class="font-bold text-slate-200 text-xs sm:text-sm mt-0.5 block">--</span>
+                </div>
+                <span class="text-slate-500 text-sm font-bold">=</span>
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold">Diff.</span>
+                  <span id="fatDiffDesc" class="text-[9px] text-slate-500 block font-sans">--</span>
+                  <span id="fatDiffVal" class="font-extrabold text-xs sm:text-sm text-emerald-400 mt-0.5 block">--</span>
+                </div>
               </div>
             </div>
           </div>
+
+          <!-- Stima Massa Muscolare Card -->
+          <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm border border-cyan-500/20 bg-gradient-to-r from-cyan-950/40 via-surface-900/60 to-blue-950/40">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-cyan-500/20 text-cyan-400 rounded-xl border border-cyan-500/30">
+                  <i data-lucide="dumbbell" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+                </div>
+                <div>
+                  <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                    <h3 class="font-bold text-white text-sm sm:text-base">Variazione Massa Muscolare</h3>
+                    <span id="musclePeriodTag" class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-medium">Inizializzazione...</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 mt-0.5">Mediana Massa Muscolare (kg)</p>
+                </div>
+              </div>
+
+              <div class="flex items-center bg-slate-900/90 px-3 py-2 rounded-xl border border-slate-700/60 space-x-2 sm:space-x-3 self-start sm:self-auto font-mono text-xs">
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold">1ª Sett.</span>
+                  <span id="muscleStartDateRange" class="text-[9px] text-slate-500 block font-sans">--</span>
+                  <span id="muscleStartVal" class="font-bold text-slate-200 text-xs sm:text-sm mt-0.5 block">--</span>
+                </div>
+                <span class="text-slate-500 text-sm font-bold">vs</span>
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold" id="muscleCurrLabel">Sett. Usata</span>
+                  <span id="muscleCurrDateRange" class="text-[9px] text-cyan-400 block font-sans font-medium">--</span>
+                  <span id="muscleCurrVal" class="font-bold text-slate-200 text-xs sm:text-sm mt-0.5 block">--</span>
+                </div>
+                <span class="text-slate-500 text-sm font-bold">=</span>
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold">Diff.</span>
+                  <span id="muscleDiffDesc" class="text-[9px] text-slate-500 block font-sans">--</span>
+                  <span id="muscleDiffVal" class="font-extrabold text-xs sm:text-sm text-cyan-400 mt-0.5 block">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
-        <!-- Weekly Fat Mass Trend Chart Card -->
-        <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 sm:pb-4 border-b border-slate-800">
-            <div>
-              <h3 class="font-bold text-white text-base sm:text-lg flex items-center space-x-2">
-                <span>Progressione Settimanale Massa Grassa Stimata</span>
-              </h3>
-              <p class="text-xs text-slate-400 mt-0.5">Stima in kg per ogni settimana (Mediana Peso × Mediana Grasso %)</p>
+        <!-- Charts Grid (Fat & Muscle) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          <!-- Weekly Fat Mass Trend Chart Card -->
+          <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 sm:pb-4 border-b border-slate-800">
+              <div>
+                <h3 class="font-bold text-white text-sm sm:text-base flex items-center space-x-2">
+                  <span>Progressione Massa Grassa Stimata</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Stima in kg (Mediana Peso × Mediana Grasso %)</p>
+              </div>
+              <span class="text-xs px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 font-medium self-start sm:self-auto">
+                Mediana BIA
+              </span>
             </div>
-            <span class="text-xs px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 font-medium self-start sm:self-auto">
-              Stima settimanale &bull; Mediana BIA
-            </span>
+            <div class="mt-4 sm:mt-6 relative h-[260px] sm:h-[290px] w-full">
+              <canvas id="weeklyFatLossChart"></canvas>
+            </div>
           </div>
-          <div class="mt-4 sm:mt-6 relative h-[280px] sm:h-[320px] w-full">
-            <canvas id="weeklyFatLossChart"></canvas>
+
+          <!-- Weekly Muscle Mass Trend Chart Card -->
+          <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 sm:pb-4 border-b border-slate-800">
+              <div>
+                <h3 class="font-bold text-white text-sm sm:text-base flex items-center space-x-2">
+                  <span>Progressione Massa Muscolare</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Mediana della massa muscolare (kg) per settimana</p>
+              </div>
+              <span class="text-xs px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-medium self-start sm:self-auto">
+                Index Scale
+              </span>
+            </div>
+            <div class="mt-4 sm:mt-6 relative h-[260px] sm:h-[290px] w-full">
+              <canvas id="weeklyMuscleChart"></canvas>
+            </div>
           </div>
+
         </div>
 
       </div>
@@ -500,8 +566,8 @@
 
   <!-- SCRIPT ENGINE -->
   <script>
-    const EMBEDDED_PAYLOAD = {"encrypted": true, "salt": "74zJehtXw5gJrvcQR//9lg==", "iv": "LuvxTXfAVzYRoctX", "ciphertext": "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"};
-    const IS_ENCRYPTED = true;
+    const EMBEDDED_PAYLOAD = {"encrypted": false, "data": {"entries": [{"timestamp": "2026-09-07T07:37:12", "date": "2026-09-07", "time": "07:37:12", "weight_kg": 86.05, "weight_lbs": 189.71, "bmi": 27.8, "body_fat_pct": 28.6, "body_water_pct": 51.0, "bone_mass_kg": 3.13, "muscle_mass_kg": 58.31, "visceral_fat": 20.0, "metabolic_age": 1388504744000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 86.05, "ma_30d": 86.05, "change_prev_kg": 0.0, "change_from_start_kg": 0.0}, {"timestamp": "2026-09-08T06:09:22", "date": "2026-09-08", "time": "06:09:22", "weight_kg": 84.85, "weight_lbs": 187.06, "bmi": 27.4, "body_fat_pct": 27.9, "body_water_pct": 49.5, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.06, "visceral_fat": 19.0, "metabolic_age": 1325390892000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 85.45, "ma_30d": 85.45, "change_prev_kg": -1.2, "change_from_start_kg": -1.2}, {"timestamp": "2026-09-09T06:02:18", "date": "2026-09-09", "time": "06:02:18", "weight_kg": 84.85, "weight_lbs": 187.06, "bmi": 27.4, "body_fat_pct": 27.9, "body_water_pct": 49.5, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.06, "visceral_fat": 19.0, "metabolic_age": 1325390892000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 85.25, "ma_30d": 85.25, "change_prev_kg": 0.0, "change_from_start_kg": -1.2}, {"timestamp": "2026-09-10T06:06:26", "date": "2026-09-10", "time": "06:06:26", "weight_kg": 84.65, "weight_lbs": 186.62, "bmi": 27.3, "body_fat_pct": 27.3, "body_water_pct": 49.8, "bone_mass_kg": 3.13, "muscle_mass_kg": 58.37, "visceral_fat": 19.0, "metabolic_age": 1230720114000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 85.1, "ma_30d": 85.1, "change_prev_kg": -0.2, "change_from_start_kg": -1.4}, {"timestamp": "2026-09-11T08:31:47", "date": "2026-09-11", "time": "08:31:47", "weight_kg": 84.35, "weight_lbs": 185.96, "bmi": 27.2, "body_fat_pct": 28.1, "body_water_pct": 49.3, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.57, "visceral_fat": 19.0, "metabolic_age": 1420061670000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.95, "ma_30d": 84.95, "change_prev_kg": -0.3, "change_from_start_kg": -1.7}, {"timestamp": "2026-09-12T07:51:56", "date": "2026-09-12", "time": "07:51:56", "weight_kg": 84.1, "weight_lbs": 185.41, "bmi": 27.2, "body_fat_pct": 27.9, "body_water_pct": 49.4, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.52, "visceral_fat": 19.0, "metabolic_age": 1388504744000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.81, "ma_30d": 84.81, "change_prev_kg": -0.25, "change_from_start_kg": -1.95}, {"timestamp": "2026-09-13T08:38:01", "date": "2026-09-13", "time": "08:38:01", "weight_kg": 83.9, "weight_lbs": 184.97, "bmi": 27.1, "body_fat_pct": 26.1, "body_water_pct": 50.7, "bone_mass_kg": 3.16, "muscle_mass_kg": 58.87, "visceral_fat": 18.0, "metabolic_age": 1041378558000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.68, "ma_30d": 84.68, "change_prev_kg": -0.2, "change_from_start_kg": -2.15}, {"timestamp": "2026-09-14T06:03:39", "date": "2026-09-14", "time": "06:03:39", "weight_kg": 83.9, "weight_lbs": 184.97, "bmi": 27.1, "body_fat_pct": 26.0, "body_water_pct": 50.7, "bone_mass_kg": 3.16, "muscle_mass_kg": 58.89, "visceral_fat": 18.0, "metabolic_age": 1009821632000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.37, "ma_30d": 84.58, "change_prev_kg": 0.0, "change_from_start_kg": -2.15}, {"timestamp": "2026-09-15T06:01:11", "date": "2026-09-15", "time": "06:01:11", "weight_kg": 83.7, "weight_lbs": 184.53, "bmi": 27.0, "body_fat_pct": 28.3, "body_water_pct": 49.2, "bone_mass_kg": 3.05, "muscle_mass_kg": 56.92, "visceral_fat": 18.0, "metabolic_age": 1514732448000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.21, "ma_30d": 84.48, "change_prev_kg": -0.2, "change_from_start_kg": -2.35}, {"timestamp": "2026-09-16T06:01:10", "date": "2026-09-16", "time": "06:01:10", "weight_kg": 83.8, "weight_lbs": 184.75, "bmi": 27.1, "body_fat_pct": 31.0, "body_water_pct": 49.2, "bone_mass_kg": 2.94, "muscle_mass_kg": 54.84, "visceral_fat": 18.0, "metabolic_age": 2051200190000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 84.06, "ma_30d": 84.41, "change_prev_kg": 0.1, "change_from_start_kg": -2.25}, {"timestamp": "2026-09-17T05:38:24", "date": "2026-09-17", "time": "05:38:24", "weight_kg": 83.55, "weight_lbs": 184.2, "bmi": 27.0, "body_fat_pct": 26.2, "body_water_pct": 50.6, "bone_mass_kg": 3.14, "muscle_mass_kg": 58.49, "visceral_fat": 18.0, "metabolic_age": 1072935484000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.9, "ma_30d": 84.34, "change_prev_kg": -0.25, "change_from_start_kg": -2.5}, {"timestamp": "2026-09-18T06:01:36", "date": "2026-09-18", "time": "06:01:36", "weight_kg": 83.85, "weight_lbs": 184.86, "bmi": 27.1, "body_fat_pct": 27.5, "body_water_pct": 49.7, "bone_mass_kg": 3.1, "muscle_mass_kg": 57.69, "visceral_fat": 18.0, "metabolic_age": 1325390892000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.83, "ma_30d": 84.3, "change_prev_kg": 0.3, "change_from_start_kg": -2.2}, {"timestamp": "2026-09-19T06:50:48", "date": "2026-09-19", "time": "06:50:48", "weight_kg": 83.7, "weight_lbs": 184.53, "bmi": 27.0, "body_fat_pct": 26.3, "body_water_pct": 50.6, "bone_mass_kg": 3.14, "muscle_mass_kg": 58.54, "visceral_fat": 18.0, "metabolic_age": 1104492410000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.77, "ma_30d": 84.25, "change_prev_kg": -0.15, "change_from_start_kg": -2.35}, {"timestamp": "2026-09-20T09:14:30", "date": "2026-09-20", "time": "09:14:30", "weight_kg": 84.25, "weight_lbs": 185.74, "bmi": 27.2, "body_fat_pct": 27.4, "body_water_pct": 49.8, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.05, "visceral_fat": 19.0, "metabolic_age": 1262277040000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.82, "ma_30d": 84.25, "change_prev_kg": 0.55, "change_from_start_kg": -1.8}, {"timestamp": "2026-09-21T05:53:07", "date": "2026-09-21", "time": "05:53:07", "weight_kg": 83.9, "weight_lbs": 184.97, "bmi": 27.1, "body_fat_pct": 31.1, "body_water_pct": 49.2, "bone_mass_kg": 2.94, "muscle_mass_kg": 54.84, "visceral_fat": 18.0, "metabolic_age": 2051200190000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.82, "ma_30d": 84.23, "change_prev_kg": -0.35, "change_from_start_kg": -2.15}, {"timestamp": "2026-09-22T05:59:10", "date": "2026-09-22", "time": "05:59:10", "weight_kg": 83.45, "weight_lbs": 183.98, "bmi": 26.9, "body_fat_pct": 26.1, "body_water_pct": 50.7, "bone_mass_kg": 3.14, "muscle_mass_kg": 58.5, "visceral_fat": 18.0, "metabolic_age": 1072935484000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.79, "ma_30d": 84.18, "change_prev_kg": -0.45, "change_from_start_kg": -2.6}, {"timestamp": "2026-09-23T05:53:11", "date": "2026-09-23", "time": "05:53:11", "weight_kg": 82.8, "weight_lbs": 182.54, "bmi": 26.7, "body_fat_pct": 25.2, "body_water_pct": 51.3, "bone_mass_kg": 3.15, "muscle_mass_kg": 58.75, "visceral_fat": 18.0, "metabolic_age": 946707780000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.64, "ma_30d": 84.1, "change_prev_kg": -0.65, "change_from_start_kg": -3.25}, {"timestamp": "2026-09-24T08:40:54", "date": "2026-09-24", "time": "08:40:54", "weight_kg": 82.6, "weight_lbs": 182.1, "bmi": 26.7, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.07, "muscle_mass_kg": 57.26, "visceral_fat": 18.0, "metabolic_age": 1293833966000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.51, "ma_30d": 84.01, "change_prev_kg": -0.2, "change_from_start_kg": -3.45}, {"timestamp": "2026-09-25T05:56:34", "date": "2026-09-25", "time": "05:56:34", "weight_kg": 83.25, "weight_lbs": 183.53, "bmi": 26.9, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.65, "visceral_fat": 18.0, "metabolic_age": 1262277040000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.42, "ma_30d": 83.97, "change_prev_kg": 0.65, "change_from_start_kg": -2.8}, {"timestamp": "2026-09-26T07:54:25", "date": "2026-09-26", "time": "07:54:25", "weight_kg": 83.1, "weight_lbs": 183.2, "bmi": 26.8, "body_fat_pct": 29.3, "body_water_pct": 50.4, "bone_mass_kg": 2.99, "muscle_mass_kg": 55.72, "visceral_fat": 18.0, "metabolic_age": 1735630930000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.34, "ma_30d": 83.93, "change_prev_kg": -0.15, "change_from_start_kg": -2.95}, {"timestamp": "2026-09-27T08:55:24", "date": "2026-09-27", "time": "08:55:24", "weight_kg": 83.95, "weight_lbs": 185.08, "bmi": 27.1, "body_fat_pct": 30.6, "body_water_pct": 49.6, "bone_mass_kg": 2.97, "muscle_mass_kg": 55.3, "visceral_fat": 18.0, "metabolic_age": 1924972486000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.29, "ma_30d": 83.93, "change_prev_kg": 0.85, "change_from_start_kg": -2.1}, {"timestamp": "2026-09-28T05:59:40", "date": "2026-09-28", "time": "05:59:40", "weight_kg": 83.65, "weight_lbs": 184.42, "bmi": 27.0, "body_fat_pct": 26.8, "body_water_pct": 50.2, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.1, "visceral_fat": 18.0, "metabolic_age": 1199163188000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.26, "ma_30d": 83.92, "change_prev_kg": -0.3, "change_from_start_kg": -2.4}, {"timestamp": "2026-09-29T06:08:54", "date": "2026-09-29", "time": "06:08:54", "weight_kg": 83.2, "weight_lbs": 183.42, "bmi": 26.9, "body_fat_pct": 26.0, "body_water_pct": 50.7, "bone_mass_kg": 3.14, "muscle_mass_kg": 58.41, "visceral_fat": 18.0, "metabolic_age": 1072935484000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.22, "ma_30d": 83.89, "change_prev_kg": -0.45, "change_from_start_kg": -2.85}, {"timestamp": "2026-09-30T06:29:53", "date": "2026-09-30", "time": "06:29:53", "weight_kg": 83.2, "weight_lbs": 183.42, "bmi": 26.9, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.63, "visceral_fat": 18.0, "metabolic_age": 1262277040000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.28, "ma_30d": 83.86, "change_prev_kg": 0.0, "change_from_start_kg": -2.85}, {"timestamp": "2026-10-01T05:50:43", "date": "2026-10-01", "time": "05:50:43", "weight_kg": 82.4, "weight_lbs": 181.66, "bmi": 26.6, "body_fat_pct": 26.9, "body_water_pct": 50.2, "bone_mass_kg": 3.07, "muscle_mass_kg": 57.19, "visceral_fat": 18.0, "metabolic_age": 1293833966000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.25, "ma_30d": 83.8, "change_prev_kg": -0.8, "change_from_start_kg": -3.65}, {"timestamp": "2026-10-02T05:51:29", "date": "2026-10-02", "time": "05:51:29", "weight_kg": 82.9, "weight_lbs": 182.76, "bmi": 26.8, "body_fat_pct": 26.2, "body_water_pct": 50.6, "bone_mass_kg": 3.12, "muscle_mass_kg": 58.06, "visceral_fat": 18.0, "metabolic_age": 1136049336000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.2, "ma_30d": 83.77, "change_prev_kg": 0.5, "change_from_start_kg": -3.15}, {"timestamp": "2026-10-03T06:06:44", "date": "2026-10-03", "time": "06:06:44", "weight_kg": 82.65, "weight_lbs": 182.21, "bmi": 26.7, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.07, "muscle_mass_kg": 57.29, "visceral_fat": 18.0, "metabolic_age": 1293833966000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 83.14, "ma_30d": 83.72, "change_prev_kg": -0.25, "change_from_start_kg": -3.4}, {"timestamp": "2026-10-04T08:16:24", "date": "2026-10-04", "time": "08:16:24", "weight_kg": 82.0, "weight_lbs": 180.78, "bmi": 26.5, "body_fat_pct": 26.6, "body_water_pct": 50.4, "bone_mass_kg": 3.07, "muscle_mass_kg": 57.13, "visceral_fat": 18.0, "metabolic_age": 1262277040000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 82.86, "ma_30d": 83.66, "change_prev_kg": -0.65, "change_from_start_kg": -4.05}, {"timestamp": "2026-10-05T06:05:53", "date": "2026-10-05", "time": "06:05:53", "weight_kg": 82.8, "weight_lbs": 182.54, "bmi": 26.7, "body_fat_pct": 27.0, "body_water_pct": 50.1, "bone_mass_kg": 3.08, "muscle_mass_kg": 57.37, "visceral_fat": 18.0, "metabolic_age": 1293833966000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 82.74, "ma_30d": 83.63, "change_prev_kg": 0.8, "change_from_start_kg": -3.25}, {"timestamp": "2026-10-06T05:50:18", "date": "2026-10-06", "time": "05:50:18", "weight_kg": 82.5, "weight_lbs": 181.88, "bmi": 26.6, "body_fat_pct": 26.5, "body_water_pct": 50.4, "bone_mass_kg": 3.09, "muscle_mass_kg": 57.55, "visceral_fat": 18.0, "metabolic_age": 1199163188000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 82.64, "ma_30d": 83.59, "change_prev_kg": -0.3, "change_from_start_kg": -3.55}, {"timestamp": "2026-10-07T05:43:00", "date": "2026-10-07", "time": "05:43:00", "weight_kg": 82.2, "weight_lbs": 181.22, "bmi": 26.5, "body_fat_pct": 26.0, "body_water_pct": 50.8, "bone_mass_kg": 3.1, "muscle_mass_kg": 57.75, "visceral_fat": 18.0, "metabolic_age": 1136049336000.0, "physique_rating": 2, "source": "INDEX_SCALE", "ma_7d": 82.49, "ma_30d": 83.47, "change_prev_kg": -0.3, "change_from_start_kg": -3.85}], "summary": {"has_data": true, "last_updated": "2026-10-07 15:31:44 UTC", "total_entries": 31, "start_date": "2026-09-07", "latest_date": "2026-10-07", "latest_time": "05:43:00", "current_weight_kg": 82.2, "current_weight_lbs": 181.22, "current_bmi": 26.5, "current_body_fat": 26.0, "current_muscle_mass": 57.75, "current_body_water": 50.8, "ma_7d": 82.49, "ma_30d": 83.47, "total_change_kg": -3.85, "change_7d_kg": -0.2, "change_30d_kg": -2.65, "min_weight_kg": 82.0, "max_weight_kg": 86.05, "avg_weight_kg": 83.55, "target": {"target_kg": 80.0, "remaining_kg": 2.2, "progress_pct": 63.6}}}};
+    const IS_ENCRYPTED = false;
 
     let RAW_DATA = [];
     let SUMMARY = {};
@@ -512,6 +578,7 @@
     let compChartInstance = null;
     let weeklyBoxplotInstance = null;
     let weeklyFatLossInstance = null;
+    let weeklyMuscleInstance = null;
 
     function showGhTokenModal() {
       const modal = document.getElementById('ghTokenModal');
@@ -796,12 +863,16 @@
             monday: mon,
             sunday: sun,
             weights: [],
-            bodyFats: []
+            bodyFats: [],
+            muscles: []
           });
         }
         weeksMap.get(key).weights.push(entry.weight_kg * mult);
         if (entry.body_fat_pct !== null && entry.body_fat_pct !== undefined && !isNaN(entry.body_fat_pct)) {
           weeksMap.get(key).bodyFats.push(entry.body_fat_pct);
+        }
+        if (entry.muscle_mass_kg !== null && entry.muscle_mass_kg !== undefined && !isNaN(entry.muscle_mass_kg)) {
+          weeksMap.get(key).muscles.push(entry.muscle_mass_kg * mult);
         }
       });
 
@@ -875,13 +946,13 @@
         const diffEl = document.getElementById('fatDiffVal');
         const diffAbs = Math.abs(fatDiff).toFixed(2);
         if (fatDiff > 0) {
-          diffEl.className = "font-extrabold text-sm sm:text-base text-emerald-400 mt-0.5 block";
+          diffEl.className = "font-extrabold text-xs sm:text-sm text-emerald-400 mt-0.5 block";
           diffEl.textContent = `-${diffAbs} ${unitStr} (${weeklyRateAbs} ${unitStr}/sett.)`;
         } else if (fatDiff < 0) {
-          diffEl.className = "font-extrabold text-sm sm:text-base text-rose-400 mt-0.5 block";
+          diffEl.className = "font-extrabold text-xs sm:text-sm text-rose-400 mt-0.5 block";
           diffEl.textContent = `+${diffAbs} ${unitStr} (+${weeklyRateAbs} ${unitStr}/sett.)`;
         } else {
-          diffEl.className = "font-extrabold text-sm sm:text-base text-slate-300 mt-0.5 block";
+          diffEl.className = "font-extrabold text-xs sm:text-sm text-slate-300 mt-0.5 block";
           diffEl.textContent = `0.00 ${unitStr} (0.00 ${unitStr}/sett.)`;
         }
       } else {
@@ -892,6 +963,47 @@
         document.getElementById('fatCurrDateRange').textContent = '--';
         document.getElementById('fatDiffDesc').textContent = '--';
         document.getElementById('fatLossPeriodTag').textContent = 'Dati parziali';
+      }
+
+      // Muscle Stats calculation
+      const w1MuscleMed = getMedian(firstWeek.muscles);
+      const targetMuscleMed = getMedian(targetWeek.muscles);
+
+      if (w1MuscleMed !== null && targetMuscleMed !== null) {
+        const muscleDiff = targetMuscleMed - w1MuscleMed;
+        const numWeeks = Math.max(1, targetWeekIdx);
+        const muscleWeeklyRate = Math.abs(muscleDiff / numWeeks).toFixed(2);
+        const muscleDiffAbs = Math.abs(muscleDiff).toFixed(2);
+
+        document.getElementById('muscleStartDateRange').textContent = w1RangeStr;
+        document.getElementById('muscleStartVal').textContent = `${w1MuscleMed.toFixed(2)} ${unitStr}`;
+
+        document.getElementById('muscleCurrLabel').textContent = targetLabel;
+        document.getElementById('muscleCurrDateRange').textContent = targetRangeStr;
+        document.getElementById('muscleCurrVal').textContent = `${targetMuscleMed.toFixed(2)} ${unitStr}`;
+
+        document.getElementById('musclePeriodTag').innerHTML = `${periodTagText} &bull; ${numWeeks} sett.`;
+        document.getElementById('muscleDiffDesc').textContent = `su ${numWeeks} sett. (${w1MonStr} → ${targetSunStr})`;
+
+        const mDiffEl = document.getElementById('muscleDiffVal');
+        if (muscleDiff > 0) {
+          mDiffEl.className = "font-extrabold text-xs sm:text-sm text-cyan-400 mt-0.5 block";
+          mDiffEl.textContent = `+${muscleDiffAbs} ${unitStr} (+${muscleWeeklyRate} ${unitStr}/sett.)`;
+        } else if (muscleDiff < 0) {
+          mDiffEl.className = "font-extrabold text-xs sm:text-sm text-amber-400 mt-0.5 block";
+          mDiffEl.textContent = `-${muscleDiffAbs} ${unitStr} (-${muscleWeeklyRate} ${unitStr}/sett.)`;
+        } else {
+          mDiffEl.className = "font-extrabold text-xs sm:text-sm text-slate-300 mt-0.5 block";
+          mDiffEl.textContent = `0.00 ${unitStr} (0.00 ${unitStr}/sett.)`;
+        }
+      } else {
+        document.getElementById('muscleStartVal').textContent = '--';
+        document.getElementById('muscleCurrVal').textContent = '--';
+        document.getElementById('muscleDiffVal').textContent = '--';
+        document.getElementById('muscleStartDateRange').textContent = '--';
+        document.getElementById('muscleCurrDateRange').textContent = '--';
+        document.getElementById('muscleDiffDesc').textContent = '--';
+        document.getElementById('musclePeriodTag').textContent = 'Dati parziali';
       }
     }
 
@@ -1576,11 +1688,177 @@
       });
     }
 
+    function renderWeeklyMuscleChart() {
+      const canvas = document.getElementById('weeklyMuscleChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!RAW_DATA || RAW_DATA.length === 0) return;
+
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+      const unitStr = currentUnit;
+
+      const weeksMap = new Map();
+      RAW_DATA.forEach(entry => {
+        if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
+        const parts = entry.date.split('-');
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const dayOfWeek = (d.getDay() + 6) % 7;
+        const mon = new Date(d);
+        mon.setDate(d.getDate() - dayOfWeek);
+        const sun = new Date(mon);
+        sun.setDate(mon.getDate() + 6);
+        const key = mon.toISOString().slice(0, 10);
+        if (!weeksMap.has(key)) {
+          weeksMap.set(key, {
+            monday: mon,
+            sunday: sun,
+            weights: [],
+            muscles: []
+          });
+        }
+        weeksMap.get(key).weights.push(entry.weight_kg * mult);
+        if (entry.muscle_mass_kg !== null && entry.muscle_mass_kg !== undefined && !isNaN(entry.muscle_mass_kg)) {
+          weeksMap.get(key).muscles.push(entry.muscle_mass_kg * mult);
+        }
+      });
+
+      const sortedWeeks = Array.from(weeksMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      if (sortedWeeks.length === 0) return;
+
+      const monthsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+      const labels = [];
+      const totalMuscleLine = [];
+
+      sortedWeeks.forEach(([key, info], idx) => {
+        const isCurrentWeek = (idx === sortedWeeks.length - 1);
+        const monStr = `${info.monday.getDate()} ${monthsShort[info.monday.getMonth()]}`;
+        const sunStr = `${info.sunday.getDate()} ${monthsShort[info.sunday.getMonth()]}`;
+        const label = `${monStr} - ${sunStr}${isCurrentWeek ? ' (in corso)' : ''}`;
+        labels.push(label);
+
+        const medM = getMedian(info.muscles);
+        if (medM !== null) {
+          totalMuscleLine.push(parseFloat(medM.toFixed(2)));
+        } else {
+          totalMuscleLine.push(null);
+        }
+      });
+
+      const validMuscleVals = totalMuscleLine.filter(v => v !== null && !isNaN(v));
+      const minMuscle = validMuscleVals.length > 0 ? Math.floor(Math.min(...validMuscleVals) - 0.5) : undefined;
+      const maxMuscle = validMuscleVals.length > 0 ? Math.ceil(Math.max(...validMuscleVals) + 0.5) : undefined;
+
+      if (weeklyMuscleInstance) {
+        weeklyMuscleInstance.destroy();
+      }
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+      gradient.addColorStop(0, 'rgba(6, 182, 212, 0.35)');
+      gradient.addColorStop(1, 'rgba(6, 182, 212, 0.0)');
+
+      weeklyMuscleInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: `Massa Muscolare Stimata (${unitStr})`,
+              data: totalMuscleLine,
+              borderColor: '#22d3ee',
+              backgroundColor: gradient,
+              borderWidth: 2.5,
+              fill: true,
+              tension: 0.25,
+              pointBackgroundColor: '#06b6d4',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 1.5,
+              pointRadius: 4.5,
+              pointHoverRadius: 6.5
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              display: true,
+              labels: {
+                color: '#94a3b8',
+                boxWidth: 12,
+                font: { family: 'Inter', size: 12 }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              titleColor: '#f8fafc',
+              bodyColor: '#cbd5e1',
+              borderColor: '#334155',
+              borderWidth: 1,
+              padding: 12,
+              callbacks: {
+                label: function(context) {
+                  const val = context.parsed.y;
+                  if (val === null || val === undefined) return '';
+                  return `Massa Muscolare: ${val.toFixed(2)} ${unitStr}`;
+                },
+                afterBody: function(context) {
+                  const item = context[0];
+                  if (!item) return '';
+                  const idx = item.dataIndex;
+                  const wInfo = sortedWeeks[idx][1];
+                  const medM = getMedian(wInfo.muscles);
+                  const medW = getMedian(wInfo.weights);
+                  let extra = '';
+                  if (idx > 0 && totalMuscleLine[idx] !== null && totalMuscleLine[idx - 1] !== null) {
+                    const diff = totalMuscleLine[idx] - totalMuscleLine[idx - 1];
+                    const diffSign = diff > 0 ? '+' : '';
+                    const diffWord = diff > 0 ? ` (+${diff.toFixed(2)} ${unitStr} guadagnati)` : diff < 0 ? ` (${Math.abs(diff).toFixed(2)} ${unitStr} persi)` : '';
+                    extra = `\nDiff. vs Sett. Prec.: ${diffSign}${diff.toFixed(2)} ${unitStr}${diffWord}`;
+                  }
+                  if (medM !== null) {
+                    return `Pesate: ${wInfo.weights.length} gg\nMediana Peso: ${medW ? medW.toFixed(1) : '--'} ${unitStr}${extra}`;
+                  }
+                  return '';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } }
+            },
+            y: {
+              min: minMuscle,
+              max: maxMuscle,
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: {
+                color: '#22d3ee',
+                callback: (v) => `${Number(v).toFixed(1)} ${unitStr}`
+              },
+              title: {
+                display: true,
+                text: `Massa Muscolare (${unitStr})`,
+                color: '#22d3ee',
+                font: { size: 11 }
+              }
+            }
+          }
+        }
+      });
+    }
+
     function renderCharts() {
       try { renderMainChart(); } catch (e) { console.error("Error rendering main chart:", e); }
       try { renderWeeklyBoxplot(); } catch (e) { console.error("Error rendering weekly boxplot:", e); }
       try { renderCompositionChart(); } catch (e) { console.error("Error rendering composition chart:", e); }
       try { renderWeeklyFatLossChart(); } catch (e) { console.error("Error rendering weekly fat loss chart:", e); }
+      try { renderWeeklyMuscleChart(); } catch (e) { console.error("Error rendering weekly muscle chart:", e); }
     }
 
     function renderTable() {

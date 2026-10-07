@@ -854,63 +854,129 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         </div>
       </div>
 
-      <!-- Stima Massa Grassa Persa & Variazione Settimanale Section -->
+      <!-- Stima Massa Grassa & Massa Muscolare Section -->
       <div class="space-y-6">
         
-        <!-- Stima Massa Grassa Persa Card -->
-        <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm border border-indigo-500/20 bg-gradient-to-r from-indigo-950/40 via-surface-900/60 to-purple-950/40">
-          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div class="flex items-center space-x-3.5">
-              <div class="p-2.5 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30">
-                <i data-lucide="flame" class="w-6 h-6"></i>
-              </div>
-              <div>
-                <div class="flex items-center space-x-2 flex-wrap gap-y-1">
-                  <h3 class="font-bold text-white text-base sm:text-lg">Stima Massa Grassa Persa</h3>
-                  <span id="fatLossPeriodTag" class="text-[11px] px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">Inizializzazione...</span>
-                </div>
-                <p class="text-xs text-slate-400 mt-0.5" id="fatLossSubtitle">Calcolo: Mediana Peso × Mediana Grasso % (1ª Settimana vs Settimana di Riferimento)</p>
-              </div>
-            </div>
+        <!-- Cards Grid (Fat & Muscle) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            <div class="flex items-center bg-slate-900/90 px-4 py-3 rounded-xl border border-slate-700/60 space-x-3 sm:space-x-4 self-start md:self-auto font-mono text-xs sm:text-sm">
-              <div class="text-left">
-                <span class="text-[10px] uppercase text-slate-400 block font-sans font-semibold">1ª Settimana</span>
-                <span id="fatStartDateRange" class="text-[10px] text-slate-500 block font-sans">--</span>
-                <span id="fatStartVal" class="font-bold text-slate-200 text-sm sm:text-base mt-0.5 block">--</span>
+          <!-- Stima Massa Grassa Persa Card -->
+          <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm border border-indigo-500/20 bg-gradient-to-r from-indigo-950/40 via-surface-900/60 to-purple-950/40">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+                  <i data-lucide="flame" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+                </div>
+                <div>
+                  <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                    <h3 class="font-bold text-white text-sm sm:text-base">Stima Massa Grassa Persa</h3>
+                    <span id="fatLossPeriodTag" class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">Inizializzazione...</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 mt-0.5">Mediana Peso × Mediana Grasso %</p>
+                </div>
               </div>
-              <span class="text-slate-500 text-lg font-bold">−</span>
-              <div class="text-left">
-                <span class="text-[10px] uppercase text-slate-400 block font-sans font-semibold" id="fatCurrLabel">Sett. Usata</span>
-                <span id="fatCurrDateRange" class="text-[10px] text-cyan-400 block font-sans font-medium">--</span>
-                <span id="fatCurrVal" class="font-bold text-slate-200 text-sm sm:text-base mt-0.5 block">--</span>
-              </div>
-              <span class="text-slate-500 text-lg font-bold">=</span>
-              <div class="text-left">
-                <span class="text-[10px] uppercase text-slate-400 block font-sans font-semibold">Differenza</span>
-                <span id="fatDiffDesc" class="text-[10px] text-slate-500 block font-sans">--</span>
-                <span id="fatDiffVal" class="font-extrabold text-sm sm:text-base text-emerald-400 mt-0.5 block">--</span>
+
+              <div class="flex items-center bg-slate-900/90 px-3 py-2 rounded-xl border border-slate-700/60 space-x-2 sm:space-x-3 self-start sm:self-auto font-mono text-xs">
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold">1ª Sett.</span>
+                  <span id="fatStartDateRange" class="text-[9px] text-slate-500 block font-sans">--</span>
+                  <span id="fatStartVal" class="font-bold text-slate-200 text-xs sm:text-sm mt-0.5 block">--</span>
+                </div>
+                <span class="text-slate-500 text-sm font-bold">−</span>
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold" id="fatCurrLabel">Sett. Usata</span>
+                  <span id="fatCurrDateRange" class="text-[9px] text-cyan-400 block font-sans font-medium">--</span>
+                  <span id="fatCurrVal" class="font-bold text-slate-200 text-xs sm:text-sm mt-0.5 block">--</span>
+                </div>
+                <span class="text-slate-500 text-sm font-bold">=</span>
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold">Diff.</span>
+                  <span id="fatDiffDesc" class="text-[9px] text-slate-500 block font-sans">--</span>
+                  <span id="fatDiffVal" class="font-extrabold text-xs sm:text-sm text-emerald-400 mt-0.5 block">--</span>
+                </div>
               </div>
             </div>
           </div>
+
+          <!-- Stima Massa Muscolare Card -->
+          <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm border border-cyan-500/20 bg-gradient-to-r from-cyan-950/40 via-surface-900/60 to-blue-950/40">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-cyan-500/20 text-cyan-400 rounded-xl border border-cyan-500/30">
+                  <i data-lucide="dumbbell" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+                </div>
+                <div>
+                  <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                    <h3 class="font-bold text-white text-sm sm:text-base">Variazione Massa Muscolare</h3>
+                    <span id="musclePeriodTag" class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-medium">Inizializzazione...</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 mt-0.5">Mediana Massa Muscolare (kg)</p>
+                </div>
+              </div>
+
+              <div class="flex items-center bg-slate-900/90 px-3 py-2 rounded-xl border border-slate-700/60 space-x-2 sm:space-x-3 self-start sm:self-auto font-mono text-xs">
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold">1ª Sett.</span>
+                  <span id="muscleStartDateRange" class="text-[9px] text-slate-500 block font-sans">--</span>
+                  <span id="muscleStartVal" class="font-bold text-slate-200 text-xs sm:text-sm mt-0.5 block">--</span>
+                </div>
+                <span class="text-slate-500 text-sm font-bold">vs</span>
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold" id="muscleCurrLabel">Sett. Usata</span>
+                  <span id="muscleCurrDateRange" class="text-[9px] text-cyan-400 block font-sans font-medium">--</span>
+                  <span id="muscleCurrVal" class="font-bold text-slate-200 text-xs sm:text-sm mt-0.5 block">--</span>
+                </div>
+                <span class="text-slate-500 text-sm font-bold">=</span>
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold">Diff.</span>
+                  <span id="muscleDiffDesc" class="text-[9px] text-slate-500 block font-sans">--</span>
+                  <span id="muscleDiffVal" class="font-extrabold text-xs sm:text-sm text-cyan-400 mt-0.5 block">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
-        <!-- Weekly Fat Mass Trend Chart Card -->
-        <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 sm:pb-4 border-b border-slate-800">
-            <div>
-              <h3 class="font-bold text-white text-base sm:text-lg flex items-center space-x-2">
-                <span>Progressione Settimanale Massa Grassa Stimata</span>
-              </h3>
-              <p class="text-xs text-slate-400 mt-0.5">Stima in kg per ogni settimana (Mediana Peso × Mediana Grasso %)</p>
+        <!-- Charts Grid (Fat & Muscle) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          <!-- Weekly Fat Mass Trend Chart Card -->
+          <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 sm:pb-4 border-b border-slate-800">
+              <div>
+                <h3 class="font-bold text-white text-sm sm:text-base flex items-center space-x-2">
+                  <span>Progressione Massa Grassa Stimata</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Stima in kg (Mediana Peso × Mediana Grasso %)</p>
+              </div>
+              <span class="text-xs px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 font-medium self-start sm:self-auto">
+                Mediana BIA
+              </span>
             </div>
-            <span class="text-xs px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 font-medium self-start sm:self-auto">
-              Stima settimanale &bull; Mediana BIA
-            </span>
+            <div class="mt-4 sm:mt-6 relative h-[260px] sm:h-[290px] w-full">
+              <canvas id="weeklyFatLossChart"></canvas>
+            </div>
           </div>
-          <div class="mt-4 sm:mt-6 relative h-[280px] sm:h-[320px] w-full">
-            <canvas id="weeklyFatLossChart"></canvas>
+
+          <!-- Weekly Muscle Mass Trend Chart Card -->
+          <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 sm:pb-4 border-b border-slate-800">
+              <div>
+                <h3 class="font-bold text-white text-sm sm:text-base flex items-center space-x-2">
+                  <span>Progressione Massa Muscolare</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Mediana della massa muscolare (kg) per settimana</p>
+              </div>
+              <span class="text-xs px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-medium self-start sm:self-auto">
+                Index Scale
+              </span>
+            </div>
+            <div class="mt-4 sm:mt-6 relative h-[260px] sm:h-[290px] w-full">
+              <canvas id="weeklyMuscleChart"></canvas>
+            </div>
           </div>
+
         </div>
 
       </div>
@@ -938,6 +1004,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
     let compChartInstance = null;
     let weeklyBoxplotInstance = null;
     let weeklyFatLossInstance = null;
+    let weeklyMuscleInstance = null;
 
     function showGhTokenModal() {{
       const modal = document.getElementById('ghTokenModal');
@@ -1222,12 +1289,16 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
             monday: mon,
             sunday: sun,
             weights: [],
-            bodyFats: []
+            bodyFats: [],
+            muscles: []
           }});
         }}
         weeksMap.get(key).weights.push(entry.weight_kg * mult);
         if (entry.body_fat_pct !== null && entry.body_fat_pct !== undefined && !isNaN(entry.body_fat_pct)) {{
           weeksMap.get(key).bodyFats.push(entry.body_fat_pct);
+        }}
+        if (entry.muscle_mass_kg !== null && entry.muscle_mass_kg !== undefined && !isNaN(entry.muscle_mass_kg)) {{
+          weeksMap.get(key).muscles.push(entry.muscle_mass_kg * mult);
         }}
       }});
 
@@ -1301,13 +1372,13 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         const diffEl = document.getElementById('fatDiffVal');
         const diffAbs = Math.abs(fatDiff).toFixed(2);
         if (fatDiff > 0) {{
-          diffEl.className = "font-extrabold text-sm sm:text-base text-emerald-400 mt-0.5 block";
+          diffEl.className = "font-extrabold text-xs sm:text-sm text-emerald-400 mt-0.5 block";
           diffEl.textContent = `-${{diffAbs}} ${{unitStr}} (${{weeklyRateAbs}} ${{unitStr}}/sett.)`;
         }} else if (fatDiff < 0) {{
-          diffEl.className = "font-extrabold text-sm sm:text-base text-rose-400 mt-0.5 block";
+          diffEl.className = "font-extrabold text-xs sm:text-sm text-rose-400 mt-0.5 block";
           diffEl.textContent = `+${{diffAbs}} ${{unitStr}} (+${{weeklyRateAbs}} ${{unitStr}}/sett.)`;
         }} else {{
-          diffEl.className = "font-extrabold text-sm sm:text-base text-slate-300 mt-0.5 block";
+          diffEl.className = "font-extrabold text-xs sm:text-sm text-slate-300 mt-0.5 block";
           diffEl.textContent = `0.00 ${{unitStr}} (0.00 ${{unitStr}}/sett.)`;
         }}
       }} else {{
@@ -1318,6 +1389,47 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         document.getElementById('fatCurrDateRange').textContent = '--';
         document.getElementById('fatDiffDesc').textContent = '--';
         document.getElementById('fatLossPeriodTag').textContent = 'Dati parziali';
+      }}
+
+      // Muscle Stats calculation
+      const w1MuscleMed = getMedian(firstWeek.muscles);
+      const targetMuscleMed = getMedian(targetWeek.muscles);
+
+      if (w1MuscleMed !== null && targetMuscleMed !== null) {{
+        const muscleDiff = targetMuscleMed - w1MuscleMed;
+        const numWeeks = Math.max(1, targetWeekIdx);
+        const muscleWeeklyRate = Math.abs(muscleDiff / numWeeks).toFixed(2);
+        const muscleDiffAbs = Math.abs(muscleDiff).toFixed(2);
+
+        document.getElementById('muscleStartDateRange').textContent = w1RangeStr;
+        document.getElementById('muscleStartVal').textContent = `${{w1MuscleMed.toFixed(2)}} ${{unitStr}}`;
+
+        document.getElementById('muscleCurrLabel').textContent = targetLabel;
+        document.getElementById('muscleCurrDateRange').textContent = targetRangeStr;
+        document.getElementById('muscleCurrVal').textContent = `${{targetMuscleMed.toFixed(2)}} ${{unitStr}}`;
+
+        document.getElementById('musclePeriodTag').innerHTML = `${{periodTagText}} &bull; ${{numWeeks}} sett.`;
+        document.getElementById('muscleDiffDesc').textContent = `su ${{numWeeks}} sett. (${{w1MonStr}} → ${{targetSunStr}})`;
+
+        const mDiffEl = document.getElementById('muscleDiffVal');
+        if (muscleDiff > 0) {{
+          mDiffEl.className = "font-extrabold text-xs sm:text-sm text-cyan-400 mt-0.5 block";
+          mDiffEl.textContent = `+${{muscleDiffAbs}} ${{unitStr}} (+${{muscleWeeklyRate}} ${{unitStr}}/sett.)`;
+        }} else if (muscleDiff < 0) {{
+          mDiffEl.className = "font-extrabold text-xs sm:text-sm text-amber-400 mt-0.5 block";
+          mDiffEl.textContent = `-${{muscleDiffAbs}} ${{unitStr}} (-${{muscleWeeklyRate}} ${{unitStr}}/sett.)`;
+        }} else {{
+          mDiffEl.className = "font-extrabold text-xs sm:text-sm text-slate-300 mt-0.5 block";
+          mDiffEl.textContent = `0.00 ${{unitStr}} (0.00 ${{unitStr}}/sett.)`;
+        }}
+      }} else {{
+        document.getElementById('muscleStartVal').textContent = '--';
+        document.getElementById('muscleCurrVal').textContent = '--';
+        document.getElementById('muscleDiffVal').textContent = '--';
+        document.getElementById('muscleStartDateRange').textContent = '--';
+        document.getElementById('muscleCurrDateRange').textContent = '--';
+        document.getElementById('muscleDiffDesc').textContent = '--';
+        document.getElementById('musclePeriodTag').textContent = 'Dati parziali';
       }}
     }}
 
@@ -2002,11 +2114,177 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       }});
     }}
 
+    function renderWeeklyMuscleChart() {{
+      const canvas = document.getElementById('weeklyMuscleChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!RAW_DATA || RAW_DATA.length === 0) return;
+
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+      const unitStr = currentUnit;
+
+      const weeksMap = new Map();
+      RAW_DATA.forEach(entry => {{
+        if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
+        const parts = entry.date.split('-');
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const dayOfWeek = (d.getDay() + 6) % 7;
+        const mon = new Date(d);
+        mon.setDate(d.getDate() - dayOfWeek);
+        const sun = new Date(mon);
+        sun.setDate(mon.getDate() + 6);
+        const key = mon.toISOString().slice(0, 10);
+        if (!weeksMap.has(key)) {{
+          weeksMap.set(key, {{
+            monday: mon,
+            sunday: sun,
+            weights: [],
+            muscles: []
+          }});
+        }}
+        weeksMap.get(key).weights.push(entry.weight_kg * mult);
+        if (entry.muscle_mass_kg !== null && entry.muscle_mass_kg !== undefined && !isNaN(entry.muscle_mass_kg)) {{
+          weeksMap.get(key).muscles.push(entry.muscle_mass_kg * mult);
+        }}
+      }});
+
+      const sortedWeeks = Array.from(weeksMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      if (sortedWeeks.length === 0) return;
+
+      const monthsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+      const labels = [];
+      const totalMuscleLine = [];
+
+      sortedWeeks.forEach(([key, info], idx) => {{
+        const isCurrentWeek = (idx === sortedWeeks.length - 1);
+        const monStr = `${{info.monday.getDate()}} ${{monthsShort[info.monday.getMonth()]}}`;
+        const sunStr = `${{info.sunday.getDate()}} ${{monthsShort[info.sunday.getMonth()]}}`;
+        const label = `${{monStr}} - ${{sunStr}}${{isCurrentWeek ? ' (in corso)' : ''}}`;
+        labels.push(label);
+
+        const medM = getMedian(info.muscles);
+        if (medM !== null) {{
+          totalMuscleLine.push(parseFloat(medM.toFixed(2)));
+        }} else {{
+          totalMuscleLine.push(null);
+        }}
+      }});
+
+      const validMuscleVals = totalMuscleLine.filter(v => v !== null && !isNaN(v));
+      const minMuscle = validMuscleVals.length > 0 ? Math.floor(Math.min(...validMuscleVals) - 0.5) : undefined;
+      const maxMuscle = validMuscleVals.length > 0 ? Math.ceil(Math.max(...validMuscleVals) + 0.5) : undefined;
+
+      if (weeklyMuscleInstance) {{
+        weeklyMuscleInstance.destroy();
+      }}
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+      gradient.addColorStop(0, 'rgba(6, 182, 212, 0.35)');
+      gradient.addColorStop(1, 'rgba(6, 182, 212, 0.0)');
+
+      weeklyMuscleInstance = new Chart(ctx, {{
+        type: 'line',
+        data: {{
+          labels: labels,
+          datasets: [
+            {{
+              label: `Massa Muscolare Stimata (${{unitStr}})`,
+              data: totalMuscleLine,
+              borderColor: '#22d3ee',
+              backgroundColor: gradient,
+              borderWidth: 2.5,
+              fill: true,
+              tension: 0.25,
+              pointBackgroundColor: '#06b6d4',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 1.5,
+              pointRadius: 4.5,
+              pointHoverRadius: 6.5
+            }}
+          ]
+        }},
+        options: {{
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {{
+            mode: 'index',
+            intersect: false
+          }},
+          plugins: {{
+            legend: {{
+              display: true,
+              labels: {{
+                color: '#94a3b8',
+                boxWidth: 12,
+                font: {{ family: 'Inter', size: 12 }}
+              }}
+            }},
+            tooltip: {{
+              backgroundColor: '#0f172a',
+              titleColor: '#f8fafc',
+              bodyColor: '#cbd5e1',
+              borderColor: '#334155',
+              borderWidth: 1,
+              padding: 12,
+              callbacks: {{
+                label: function(context) {{
+                  const val = context.parsed.y;
+                  if (val === null || val === undefined) return '';
+                  return `Massa Muscolare: ${{val.toFixed(2)}} ${{unitStr}}`;
+                }},
+                afterBody: function(context) {{
+                  const item = context[0];
+                  if (!item) return '';
+                  const idx = item.dataIndex;
+                  const wInfo = sortedWeeks[idx][1];
+                  const medM = getMedian(wInfo.muscles);
+                  const medW = getMedian(wInfo.weights);
+                  let extra = '';
+                  if (idx > 0 && totalMuscleLine[idx] !== null && totalMuscleLine[idx - 1] !== null) {{
+                    const diff = totalMuscleLine[idx] - totalMuscleLine[idx - 1];
+                    const diffSign = diff > 0 ? '+' : '';
+                    const diffWord = diff > 0 ? ` (+${{diff.toFixed(2)}} ${{unitStr}} guadagnati)` : diff < 0 ? ` (${{Math.abs(diff).toFixed(2)}} ${{unitStr}} persi)` : '';
+                    extra = `\\nDiff. vs Sett. Prec.: ${{diffSign}}${{diff.toFixed(2)}} ${{unitStr}}${{diffWord}}`;
+                  }}
+                  if (medM !== null) {{
+                    return `Pesate: ${{wInfo.weights.length}} gg\\nMediana Peso: ${{medW ? medW.toFixed(1) : '--'}} ${{unitStr}}${{extra}}`;
+                  }}
+                  return '';
+                }}
+              }}
+            }}
+          }},
+          scales: {{
+            x: {{
+              grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
+              ticks: {{ color: '#94a3b8', font: {{ family: 'Inter', size: 11 }} }}
+            }},
+            y: {{
+              min: minMuscle,
+              max: maxMuscle,
+              grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
+              ticks: {{
+                color: '#22d3ee',
+                callback: (v) => `${{Number(v).toFixed(1)}} ${{unitStr}}`
+              }},
+              title: {{
+                display: true,
+                text: `Massa Muscolare (${{unitStr}})`,
+                color: '#22d3ee',
+                font: {{ size: 11 }}
+              }}
+            }}
+          }}
+        }}
+      }});
+    }}
+
     function renderCharts() {{
       try {{ renderMainChart(); }} catch (e) {{ console.error("Error rendering main chart:", e); }}
       try {{ renderWeeklyBoxplot(); }} catch (e) {{ console.error("Error rendering weekly boxplot:", e); }}
       try {{ renderCompositionChart(); }} catch (e) {{ console.error("Error rendering composition chart:", e); }}
       try {{ renderWeeklyFatLossChart(); }} catch (e) {{ console.error("Error rendering weekly fat loss chart:", e); }}
+      try {{ renderWeeklyMuscleChart(); }} catch (e) {{ console.error("Error rendering weekly muscle chart:", e); }}
     }}
 
     function renderTable() {{
