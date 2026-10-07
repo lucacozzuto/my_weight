@@ -69,8 +69,13 @@ jobs:
             echo "No changes to commit."
           else
             git commit -m "Automated: update encrypted weight history and dashboard [skip ci]"
-            git pull --rebase origin main || true
-            git push origin main
+            git push origin main || {
+              git fetch origin main
+              git reset --soft origin/main
+              git add data/ docs/
+              git commit -m "Automated: update encrypted weight history and dashboard [skip ci]"
+              git push origin main
+            }
           fi
 
       - name: Setup Pages
