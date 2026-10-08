@@ -210,6 +210,7 @@
           <div class="mt-2 sm:mt-3 flex items-baseline space-x-2">
             <span id="stat30dChange" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">--</span>
             <span id="statUnit3" class="text-xs sm:text-sm font-medium text-slate-400">kg</span>
+            <span id="statMedWeeks" class="text-xs font-medium text-slate-400"></span>
           </div>
           <div class="mt-2 flex items-center text-xs space-x-1">
             <span class="text-slate-400">Min/Max:</span>
@@ -909,8 +910,13 @@
         const medDiff = currMed - firstMed;
         medDiffEl.textContent = (medDiff > 0 ? '+' : '') + medDiff.toFixed(1);
         medDiffEl.title = `Mediana in corso ${currMed.toFixed(2)} ${unitStr} − prima sett. ${firstMed.toFixed(2)} ${unitStr}`;
+        const [fy, fm, fd] = weekKeys[0].split('-').map(Number);
+        const [cy, cm, cd] = weekKeys[weekKeys.length - 1].split('-').map(Number);
+        const numWeeksMed = Math.round((Date.UTC(cy, cm - 1, cd) - Date.UTC(fy, fm - 1, fd)) / (7 * 86400000));
+        document.getElementById('statMedWeeks').textContent = `dopo ${numWeeksMed} ${numWeeksMed === 1 ? 'settimana' : 'settimane'}`;
       } else {
         medDiffEl.textContent = '--';
+        document.getElementById('statMedWeeks').textContent = '';
       }
 
       const minW = ((SUMMARY.min_weight_kg || 0) * mult).toFixed(1);
