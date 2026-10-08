@@ -537,71 +537,6 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
     </div>
   </div>
 
-  <!-- GITHUB TOKEN MODAL -->
-  <div id="ghTokenModal" class="fixed inset-0 z-[110] hidden items-center justify-center bg-surface-950/90 backdrop-blur-md p-4 transition-all">
-    <div class="glass-card w-full max-w-md p-6 rounded-3xl shadow-2xl border border-slate-700 space-y-4">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-2.5">
-          <div class="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl">
-            <i data-lucide="key" class="w-5 h-5"></i>
-          </div>
-          <h3 class="font-bold text-white text-base">Sincronizzazione Manuale</h3>
-        </div>
-        <button onclick="closeGhTokenModal()" class="text-slate-400 hover:text-white p-1">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <p class="text-xs text-slate-300 leading-relaxed">
-        Per avviare la sincronizzazione Garmin con un click, inserisci il tuo <strong>GitHub Personal Access Token (PAT)</strong> con permesso <code>workflow</code> / <code>actions</code>. Il token rimane salvato esclusivamente nel tuo browser.
-      </p>
-
-      <form onsubmit="saveGhTokenAndSync(event)" class="space-y-3">
-        <div>
-          <label class="text-[11px] font-semibold text-slate-400 block mb-1">GitHub Token (Classic o Fine-Grained)</label>
-          <input 
-            type="password" 
-            id="ghTokenInput" 
-            placeholder="ghp_... oppure github_pat_..."
-            required
-            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:border-indigo-500 text-white text-xs outline-none font-mono"
-          />
-        </div>
-
-        <div class="flex items-center justify-between text-[11px] text-slate-400">
-          <a href="https://github.com/settings/tokens/new?scopes=workflow&description=MyWeight+Dashboard+Sync" target="_blank" class="text-cyan-400 hover:underline flex items-center space-x-1">
-            <span>Crea token su GitHub (1 click)</span>
-            <i data-lucide="external-link" class="w-3 h-3"></i>
-          </a>
-        </div>
-
-        <div class="flex space-x-2 pt-2">
-          <button 
-            type="button" 
-            onclick="closeGhTokenModal()" 
-            class="w-1/2 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition"
-          >
-            Annulla
-          </button>
-          <button 
-            type="submit" 
-            class="w-1/2 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition flex items-center justify-center space-x-1.5 shadow-lg shadow-indigo-600/30"
-          >
-            <span>Salva e Avvia</span>
-            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-          </button>
-        </div>
-      </form>
-
-      <div class="pt-2 border-t border-slate-800 text-center">
-        <a href="https://github.com/lucacozzuto/my_weight/actions/workflows/fetch_and_publish.yml" target="_blank" class="text-[11px] text-slate-400 hover:text-white flex items-center justify-center space-x-1">
-          <span>Oppure avvia manualmente su GitHub Actions</span>
-          <i data-lucide="external-link" class="w-3 h-3"></i>
-        </a>
-      </div>
-    </div>
-  </div>
-
   <!-- DASHBOARD WRAPPER -->
   <div id="dashboardContent" class="opacity-0 transition-opacity duration-300">
     
@@ -619,16 +554,18 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         </div>
 
         <div class="flex items-center space-x-2 sm:space-x-3">
-          <!-- Sync Button -->
-          <button 
+          <!-- Sync Button (Direct 1-Click to GitHub Actions) -->
+          <a 
+            href="https://github.com/lucacozzuto/my_weight/actions/workflows/fetch_and_publish.yml" 
+            target="_blank"
             id="btnSyncNow" 
-            onclick="triggerManualSync()" 
-            title="Sincronizza con Garmin Connect"
+            title="Avvia sincronizzazione su GitHub Actions"
             class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-sm"
           >
             <i data-lucide="refresh-cw" id="syncIcon" class="w-3.5 h-3.5"></i>
-            <span id="syncText">Sincronizza</span>
-          </button>
+            <span>Sincronizza</span>
+            <i data-lucide="external-link" class="w-3 h-3 text-indigo-300"></i>
+          </a>
 
           <!-- Unit Toggle -->
           <div class="bg-slate-800 p-1 rounded-lg flex items-center border border-slate-700 text-xs font-semibold">
@@ -653,7 +590,9 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         <!-- Current Weight Card -->
         <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-sm">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Peso Attuale</span>
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">
+              Peso Attuale <span id="statWeightDate" class="text-indigo-400 font-semibold normal-case ml-1"></span>
+            </span>
             <div class="p-1.5 bg-indigo-500/10 text-indigo-400 rounded-lg">
               <i data-lucide="activity" class="w-4 h-4"></i>
             </div>
@@ -1006,92 +945,6 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
     let weeklyFatLossInstance = null;
     let weeklyMuscleInstance = null;
 
-    function showGhTokenModal() {{
-      const modal = document.getElementById('ghTokenModal');
-      const input = document.getElementById('ghTokenInput');
-      const saved = localStorage.getItem('my_weight_gh_token') || '';
-      input.value = saved;
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }}
-
-    function closeGhTokenModal() {{
-      const modal = document.getElementById('ghTokenModal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }}
-
-    function saveGhTokenAndSync(e) {{
-      if (e) e.preventDefault();
-      const token = document.getElementById('ghTokenInput').value.trim();
-      if (token) {{
-        localStorage.setItem('my_weight_gh_token', token);
-        closeGhTokenModal();
-        triggerManualSync();
-      }}
-    }}
-
-    async function triggerManualSync() {{
-      const token = localStorage.getItem('my_weight_gh_token');
-      if (!token) {{
-        showGhTokenModal();
-        return;
-      }}
-
-      const btn = document.getElementById('btnSyncNow');
-      const icon = document.getElementById('syncIcon');
-      const text = document.getElementById('syncText');
-      btn.disabled = true;
-      btn.classList.add('opacity-75', 'cursor-not-allowed');
-      if (icon) icon.classList.add('animate-spin');
-      text.textContent = 'Avvio sync...';
-
-      try {{
-        const resp = await fetch('https://api.github.com/repos/lucacozzuto/my_weight/actions/workflows/fetch_and_publish.yml/dispatches', {{
-          method: 'POST',
-          headers: {{
-            'Accept': 'application/vnd.github+json',
-            'Authorization': `Bearer ${{token}}`,
-            'X-GitHub-Api-Version': '2022-11-28'
-          }},
-          body: JSON.stringify({{ ref: 'main' }})
-        }});
-
-        if (resp.status === 204 || resp.ok) {{
-          let count = 45;
-          text.textContent = `Sync in corso (~${{count}}s)...`;
-          const timer = setInterval(() => {{
-            count--;
-            if (count > 0) {{
-              text.textContent = `Sync in corso (~${{count}}s)...`;
-            }} else {{
-              clearInterval(timer);
-              text.textContent = 'Ricarico...';
-              window.location.reload();
-            }}
-          }}, 1000);
-        }} else if (resp.status === 401 || resp.status === 403) {{
-          localStorage.removeItem('my_weight_gh_token');
-          alert('Token GitHub non valido o senza permessi "workflow/actions". Reinseriscilo.');
-          btn.disabled = false;
-          btn.classList.remove('opacity-75', 'cursor-not-allowed');
-          if (icon) icon.classList.remove('animate-spin');
-          text.textContent = 'Sincronizza';
-          showGhTokenModal();
-        }} else {{
-          const err = await resp.text();
-          throw new Error(`HTTP ${{resp.status}}: ${{err}}`);
-        }}
-      }} catch (err) {{
-        console.error('Manual sync failed:', err);
-        alert(`Errore nell'avvio della sincronizzazione: ${{err.message}}`);
-        btn.disabled = false;
-        btn.classList.remove('opacity-75', 'cursor-not-allowed');
-        if (icon) icon.classList.remove('animate-spin');
-        text.textContent = 'Sincronizza';
-      }}
-    }}
-
     function setTargetWeight(val) {{
       const num = parseFloat(val);
       if (!isNaN(num) && num > 0) {{
@@ -1442,6 +1295,16 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       const latest = RAW_DATA[RAW_DATA.length - 1];
       const curW = (latest.weight_kg * mult).toFixed(1);
       document.getElementById('statCurrentWeight').textContent = curW;
+
+      if (latest && latest.date) {{
+        const parts = latest.date.split('-');
+        const dObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const daysShort = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
+        const monthsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+        const dayStr = `${{daysShort[dObj.getDay()]}} ${{dObj.getDate()}} ${{monthsShort[dObj.getMonth()]}}`;
+        const dateEl = document.getElementById('statWeightDate');
+        if (dateEl) dateEl.textContent = `(${{dayStr}})`;
+      }}
 
       const totalDiff = ((SUMMARY.total_change_kg || 0) * mult);
       document.getElementById('statTotalChange').innerHTML = formatDelta(totalDiff, unitStr);

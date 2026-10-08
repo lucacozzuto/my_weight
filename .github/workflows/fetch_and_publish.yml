@@ -2,14 +2,13 @@ name: Fetch Garmin Weight & Deploy Protected Dashboard
 
 on:
   schedule:
-    # Orari italiani: 07:50, 08:00, 08:10, 09:00 (copre sia ora legale CEST UTC+2 sia ora solare CET UTC+1)
-    - cron: '50 5 * * *'  # 07:50 CEST
-    - cron: '0 6 * * *'   # 08:00 CEST
-    - cron: '10 6 * * *'  # 08:10 CEST
-    - cron: '0 7 * * *'   # 09:00 CEST / 08:00 CET
-    - cron: '50 6 * * *'  # 07:50 CET
-    - cron: '10 7 * * *'  # 08:10 CET
-    - cron: '0 8 * * *'   # 09:00 CET
+    # Orari italiani: 07:54, 08:03, 08:14 (copre sia ora legale CEST UTC+2 sia ora solare CET UTC+1)
+    - cron: '54 5 * * *'  # 07:54 CEST
+    - cron: '3 6 * * *'   # 08:03 CEST
+    - cron: '14 6 * * *'  # 08:14 CEST
+    - cron: '54 6 * * *'  # 07:54 CET
+    - cron: '3 7 * * *'   # 08:03 CET
+    - cron: '14 7 * * *'  # 08:14 CET
   workflow_dispatch:
   push:
     branches:
