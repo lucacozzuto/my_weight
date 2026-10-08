@@ -628,7 +628,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         <!-- 30-Day Trend Card -->
         <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-sm">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Delta 30 Giorni</span>
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400" title="Mediana settimana in corso − mediana prima settimana">Δ Mediane Sett.</span>
             <div class="p-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg">
               <i data-lucide="calendar" class="w-4 h-4"></i>
             </div>
@@ -1315,8 +1315,29 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       const diff7d = ((SUMMARY.change_7d_kg || 0) * mult);
       document.getElementById('stat7dChange').innerHTML = formatDelta(diff7d, unitStr);
 
-      const diff30d = ((SUMMARY.change_30d_kg || 0) * mult);
-      document.getElementById('stat30dChange').textContent = (diff30d > 0 ? '+' : '') + diff30d.toFixed(1);
+      // Difference between weekly medians: current week (in corso) − first week
+      const weekWeights = new Map();
+      RAW_DATA.forEach(entry => {{
+        if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
+        const p = entry.date.split('-');
+        const d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+        const mon = new Date(d);
+        mon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+        const key = `${{mon.getFullYear()}}-${{String(mon.getMonth() + 1).padStart(2, '0')}}-${{String(mon.getDate()).padStart(2, '0')}}`;
+        if (!weekWeights.has(key)) weekWeights.set(key, []);
+        weekWeights.get(key).push(entry.weight_kg * mult);
+      }});
+      const weekKeys = Array.from(weekWeights.keys()).sort();
+      const medDiffEl = document.getElementById('stat30dChange');
+      if (weekKeys.length > 0) {{
+        const firstMed = getMedian(weekWeights.get(weekKeys[0]));
+        const currMed = getMedian(weekWeights.get(weekKeys[weekKeys.length - 1]));
+        const medDiff = currMed - firstMed;
+        medDiffEl.textContent = (medDiff > 0 ? '+' : '') + medDiff.toFixed(1);
+        medDiffEl.title = `Mediana in corso ${{currMed.toFixed(2)}} ${{unitStr}} − prima sett. ${{firstMed.toFixed(2)}} ${{unitStr}}`;
+      }} else {{
+        medDiffEl.textContent = '--';
+      }}
 
       const minW = ((SUMMARY.min_weight_kg || 0) * mult).toFixed(1);
       const maxW = ((SUMMARY.max_weight_kg || 0) * mult).toFixed(1);
