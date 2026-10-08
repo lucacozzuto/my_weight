@@ -1168,10 +1168,10 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       const w1SunStr = `${{firstWeek.sunday.getDate()}} ${{monthsShort[firstWeek.sunday.getMonth()]}}`;
       const w1RangeStr = `${{w1MonStr}} – ${{w1SunStr}}`;
 
-      // Latest week & check if > 4 days
+      // Latest week & check if >= 4 weigh-ins
       const latestWeekIndex = sortedWeeks.length - 1;
       const latestWeek = sortedWeeks[latestWeekIndex][1];
-      const hasMoreThan4Days = latestWeek.weights.length > 4;
+      const hasMin4Days = latestWeek.weights.length >= 4;
 
       let targetWeek;
       let targetLabel;
@@ -1181,7 +1181,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       let targetSunStr;
       let targetRangeStr;
 
-      if (hasMoreThan4Days || sortedWeeks.length === 1) {{
+      if (hasMin4Days || sortedWeeks.length === 1) {{
         targetWeekIdx = latestWeekIndex;
         targetWeek = latestWeek;
         targetLabel = "Sett. in corso";
@@ -1197,7 +1197,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         targetMonStr = `${{targetWeek.monday.getDate()}} ${{monthsShort[targetWeek.monday.getMonth()]}}`;
         targetSunStr = `${{targetWeek.sunday.getDate()}} ${{monthsShort[targetWeek.sunday.getMonth()]}}`;
         targetRangeStr = `${{targetMonStr}} – ${{targetSunStr}}`;
-        periodTagText = `Confronto: Sett. precedente (${{targetRangeStr}}) &bull; in corso ≤ 4 pesate (${{latestWeek.weights.length}} gg)`;
+        periodTagText = `Confronto: Sett. precedente (${{targetRangeStr}}) &bull; in corso < 4 pesate (${{latestWeek.weights.length}} gg)`;
       }}
 
       const targetWeightMed = getMedian(targetWeek.weights);
