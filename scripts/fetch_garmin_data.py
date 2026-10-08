@@ -1331,14 +1331,17 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       const weekKeys = Array.from(weekWeights.keys()).sort();
       const medDiffEl = document.getElementById('stat30dChange');
       if (weekKeys.length > 0) {{
+        // Current week counts only with >= 4 weigh-ins, otherwise use previous week
+        const lastIdx = weekKeys.length - 1;
+        const useCurrent = weekWeights.get(weekKeys[lastIdx]).length >= 4 || weekKeys.length === 1;
+        const targetIdx = useCurrent ? lastIdx : lastIdx - 1;
         const firstMed = getMedian(weekWeights.get(weekKeys[0]));
-        const currMed = getMedian(weekWeights.get(weekKeys[weekKeys.length - 1]));
-        const medDiff = currMed - firstMed;
+        const targetMed = getMedian(weekWeights.get(weekKeys[targetIdx]));
+        const medDiff = targetMed - firstMed;
         medDiffEl.textContent = (medDiff > 0 ? '+' : '') + medDiff.toFixed(1);
-        medDiffEl.title = `Mediana in corso ${{currMed.toFixed(2)}} ${{unitStr}} − prima sett. ${{firstMed.toFixed(2)}} ${{unitStr}}`;
-        const [fy, fm, fd] = weekKeys[0].split('-').map(Number);
-        const [cy, cm, cd] = weekKeys[weekKeys.length - 1].split('-').map(Number);
-        const numWeeksMed = Math.round((Date.UTC(cy, cm - 1, cd) - Date.UTC(fy, fm - 1, fd)) / (7 * 86400000));
+        medDiffEl.title = `Mediana ${{useCurrent ? 'sett. in corso' : 'sett. precedente'}} ${{targetMed.toFixed(2)}} ${{unitStr}} − prima sett. ${{firstMed.toFixed(2)}} ${{unitStr}}`;
+        // Same week count as the boxplot (weeks from first to target, inclusive)
+        const numWeeksMed = targetIdx + 1;
         document.getElementById('statMedWeeks').textContent = `dopo ${{numWeeksMed}} ${{numWeeksMed === 1 ? 'settimana' : 'settimane'}}`;
       }} else {{
         medDiffEl.textContent = '--';
