@@ -240,7 +240,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             if (jwt != null) {
-                GarminAuthManager.saveTokens(this, null, null, jwt, null)
+                GarminAuthManager.saveTokens(this, null, null, null, jwt, null)
                 lifecycleScope.launch {
                     loginWebView.visibility = View.GONE
                     loginPromptLayout.visibility = View.GONE
