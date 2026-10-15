@@ -47,6 +47,13 @@ class MainActivity : AppCompatActivity() {
 
         rootLayout = FrameLayout(this).apply {
             setBackgroundColor(0xFF020617.toInt())
+            fitsSystemWindows = true
+        }
+
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { view, insets ->
+            val statusBarInsets = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            view.setPadding(0, statusBarInsets.top, 0, statusBarInsets.bottom)
+            insets
         }
 
         setupDashboardWebView()
@@ -245,6 +252,9 @@ class MainActivity : AppCompatActivity() {
                     loginWebView.visibility = View.GONE
                     loginPromptLayout.visibility = View.GONE
                     swipeRefresh.visibility = View.VISIBLE
+                    if (dashboardWebView.url == null || !dashboardWebView.url!!.contains("dashboard.html")) {
+                        dashboardWebView.loadUrl("file:///android_asset/dashboard.html")
+                    }
                     syncGarminData()
                 }
                 return true
@@ -261,21 +271,17 @@ class MainActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             val ok = GarminDataFetcher.exchangeTicketForToken(this@MainActivity, ticket)
-            if (ok) {
+            if (ok || GarminAuthManager.hasValidAuth(this@MainActivity)) {
                 statusText.text = "Accesso effettuato! Download dati..."
                 loginPromptLayout.visibility = View.GONE
                 swipeRefresh.visibility = View.VISIBLE
+                if (dashboardWebView.url == null || !dashboardWebView.url!!.contains("dashboard.html")) {
+                    dashboardWebView.loadUrl("file:///android_asset/dashboard.html")
+                }
                 syncGarminData()
             } else {
-                // If direct DI exchange fails, fallback to cookies if present or show error
-                if (GarminAuthManager.hasValidAuth(this@MainActivity)) {
-                    loginPromptLayout.visibility = View.GONE
-                    swipeRefresh.visibility = View.VISIBLE
-                    syncGarminData()
-                } else {
-                    progressBar.visibility = View.GONE
-                    statusText.text = "Scambio token non riuscito. Riprova il login."
-                }
+                progressBar.visibility = View.GONE
+                statusText.text = "Scambio token non riuscito. Riprova il login."
             }
         }
     }
