@@ -710,6 +710,24 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
             </div>
             <span class="text-slate-600 hidden sm:inline">&bull;</span>
             <span class="text-slate-300" id="targetDistWrapper">Distanza: <strong id="targetDistVal" class="text-amber-300 font-bold">--</strong></span>
+            <span class="text-slate-600 hidden sm:inline">&bull;</span>
+            <div class="flex items-center space-x-1.5">
+              <span class="text-indigo-400 font-semibold flex items-center space-x-1">
+                <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                <span>Inizio Dieta:</span>
+              </span>
+              <input 
+                type="date" 
+                id="dietStartDateInput" 
+                onchange="setDietStartDate(this.value)" 
+                class="bg-slate-800 border border-slate-700 focus:border-indigo-500 rounded px-2 py-0.5 text-indigo-300 font-semibold text-xs outline-none transition" 
+              />
+              <button 
+                onclick="resetDietStartDate()" 
+                title="Reimposta a inizio storico" 
+                class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 text-[10px] transition"
+              >Tutto</button>
+            </div>
           </div>
 
           <div class="flex items-center space-x-2">
@@ -949,6 +967,32 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
     let weeklyFatLossInstance = null;
     let weeklyMuscleInstance = null;
 
+    let dietStartDate = localStorage.getItem('my_weight_diet_start_date') || '';
+
+    function setDietStartDate(val) {{
+      dietStartDate = (val || '').trim();
+      if (dietStartDate) {{
+        localStorage.setItem('my_weight_diet_start_date', dietStartDate);
+      }} else {{
+        localStorage.removeItem('my_weight_diet_start_date');
+      }}
+      const inp = document.getElementById('dietStartDateInput');
+      if (inp) inp.value = dietStartDate;
+      updateStats();
+      renderCharts();
+      renderTable();
+    }}
+
+    function resetDietStartDate() {{
+      setDietStartDate('');
+    }}
+
+    function getActiveData() {{
+      if (!RAW_DATA || RAW_DATA.length === 0) return [];
+      if (!dietStartDate) return RAW_DATA;
+      return RAW_DATA.filter(d => d.date && d.date >= dietStartDate);
+    }}
+
     function setTargetWeight(val) {{
       const num = parseFloat(val);
       if (!isNaN(num) && num > 0) {{
@@ -1047,6 +1091,9 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       const lockScreen = document.getElementById('lockScreen');
       const dashboard = document.getElementById('dashboardContent');
       targetWeightKg = parseFloat(localStorage.getItem('my_weight_target_kg')) || (SUMMARY.target_info && SUMMARY.target_info.target_kg) || 80.0;
+      dietStartDate = localStorage.getItem('my_weight_diet_start_date') || '';
+      const dietInput = document.getElementById('dietStartDateInput');
+      if (dietInput) dietInput.value = dietStartDate;
       lockScreen.classList.add('opacity-0', 'pointer-events-none');
       setTimeout(() => {{
         lockScreen.classList.add('hidden');
@@ -1107,15 +1154,16 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
     }}
 
     function getFilteredData() {{
-      if (!RAW_DATA || RAW_DATA.length === 0) return [];
-      if (currentTimeRange === 'all') return RAW_DATA;
+      const baseData = getActiveData();
+      if (!baseData || baseData.length === 0) return [];
+      if (currentTimeRange === 'all') return baseData;
       
       const days = currentTimeRange === '7d' ? 7 : currentTimeRange === '30d' ? 30 : 90;
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - days);
       const cutoffStr = cutoff.toISOString().slice(0, 10);
       
-      return RAW_DATA.filter(d => d.date >= cutoffStr);
+      return baseData.filter(d => d.date >= cutoffStr);
     }}
 
     function getMedian(arr) {{
@@ -1126,12 +1174,13 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
     }}
 
     function calculateFatLossStats() {{
-      if (!RAW_DATA || RAW_DATA.length === 0) return;
+      const activeData = getActiveData();
+      if (!activeData || activeData.length === 0) return;
       const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
       const unitStr = currentUnit;
 
       const weeksMap = new Map();
-      RAW_DATA.forEach(entry => {{
+      activeData.forEach(entry => {{
         if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
         const parts = entry.date.split('-');
         const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
@@ -1291,12 +1340,13 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
     }}
 
     function updateStats() {{
-      if (!RAW_DATA || RAW_DATA.length === 0) return;
+      const activeData = getActiveData();
+      if (!activeData || activeData.length === 0) return;
       
       const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
       const unitStr = currentUnit;
 
-      const latest = RAW_DATA[RAW_DATA.length - 1];
+      const latest = activeData[activeData.length - 1];
       const curW = (latest.weight_kg * mult).toFixed(1);
       document.getElementById('statCurrentWeight').textContent = curW;
 
@@ -1310,7 +1360,9 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         if (dateEl) dateEl.textContent = `(${{dayStr}})`;
       }}
 
-      const totalDiff = ((SUMMARY.total_change_kg || 0) * mult);
+      // Total change relative to active data start
+      const firstEntry = activeData[0];
+      const totalDiff = (latest.weight_kg - firstEntry.weight_kg) * mult;
       document.getElementById('statTotalChange').innerHTML = formatDelta(totalDiff, unitStr);
 
       const ma7 = latest.ma_7d ? (latest.ma_7d * mult).toFixed(1) : curW;
@@ -1321,7 +1373,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
 
       // Difference between weekly medians: current week (in corso) − first week
       const weekWeights = new Map();
-      RAW_DATA.forEach(entry => {{
+      activeData.forEach(entry => {{
         if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
         const p = entry.date.split('-');
         const d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
@@ -1351,8 +1403,9 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         document.getElementById('statMedWeeks').textContent = '';
       }}
 
-      const minW = ((SUMMARY.min_weight_kg || 0) * mult).toFixed(1);
-      const maxW = ((SUMMARY.max_weight_kg || 0) * mult).toFixed(1);
+      const weightsList = activeData.map(d => d.weight_kg).filter(w => w !== null && !isNaN(w));
+      const minW = ((weightsList.length > 0 ? Math.min(...weightsList) : (SUMMARY.min_weight_kg || 0)) * mult).toFixed(1);
+      const maxW = ((weightsList.length > 0 ? Math.max(...weightsList) : (SUMMARY.max_weight_kg || 0)) * mult).toFixed(1);
       document.getElementById('statMinMax').textContent = `${{minW}} - ${{maxW}} ${{unitStr}}`;
 
       document.getElementById('statBMI').textContent = latest.bmi ? latest.bmi.toFixed(1) : '--';
@@ -1399,7 +1452,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       }}
 
       // 7-day MA linear regression slope calculation over recent points (up to 28 days)
-      const recentWithMa = RAW_DATA.filter(d => d.ma_7d !== null && d.ma_7d !== undefined);
+      const recentWithMa = filtered.filter(d => d.ma_7d !== null && d.ma_7d !== undefined);
       const recentEntries = recentWithMa.slice(-28);
       let slopePerDay = 0;
       if (recentEntries.length >= 4) {{
@@ -1571,6 +1624,15 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
             mode: 'index',
             intersect: false,
           }},
+          onClick: (evt, activeElements, chart) => {{
+            if (chart && chart.tooltip) {{
+              const active = chart.tooltip.getActiveElements() || [];
+              if (active.length > 0) {{
+                chart.tooltip.setActiveElements([], {{ x: 0, y: 0 }});
+                chart.update();
+              }}
+            }}
+          }},
           plugins: {{
             legend: {{
               position: 'top',
@@ -1618,7 +1680,8 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
 
     function renderCompositionChart() {{
       const ctx = document.getElementById('compositionChart').getContext('2d');
-      const filtered = RAW_DATA.filter(d => d.body_fat_pct !== null || d.muscle_mass_kg !== null);
+      const activeData = getActiveData();
+      const filtered = activeData.filter(d => d.body_fat_pct !== null || d.muscle_mass_kg !== null);
       if (filtered.length === 0) return;
 
       const labels = filtered.map(d => d.date);
@@ -1682,14 +1745,15 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       const canvas = document.getElementById('weeklyBoxplotChart');
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
-      if (!RAW_DATA || RAW_DATA.length === 0) return;
+      const activeData = getActiveData();
+      if (!activeData || activeData.length === 0) return;
 
       const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
 
       // Group entries by Monday-Sunday calendar week
       const weeksMap = new Map();
 
-      RAW_DATA.forEach(entry => {{
+      activeData.forEach(entry => {{
         if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
         
         const parts = entry.date.split('-');
@@ -1815,10 +1879,10 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
                   const rangeVal = (Math.max(...rawArr) - Math.min(...rawArr)).toFixed(2);
                   const medVal = getMedian(rawArr).toFixed(2);
 
-                  return `\\nPesate registrate: ${{count}} gg` +
-                         `\\nMediana: ${{medVal}} ${{currentUnit}} (Media: ${{avg}} ${{currentUnit}})` +
-                         `\\nOscillazione (Max - Min): ${{rangeVal}} ${{currentUnit}}` +
-                         `\\n(Min: ${{minVal}} - Max: ${{maxVal}} ${{currentUnit}})`;
+                  return `\nPesate registrate: ${{count}} gg` +
+                         `\nMediana: ${{medVal}} ${{currentUnit}} (Media: ${{avg}} ${{currentUnit}})` +
+                         `\nOscillazione (Max - Min): ${{rangeVal}} ${{currentUnit}}` +
+                         `\n(Min: ${{minVal}} - Max: ${{maxVal}} ${{currentUnit}})`;
                 }}
               }}
             }}
@@ -1846,13 +1910,14 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       const canvas = document.getElementById('weeklyFatLossChart');
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
-      if (!RAW_DATA || RAW_DATA.length === 0) return;
+      const activeData = getActiveData();
+      if (!activeData || activeData.length === 0) return;
 
       const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
       const unitStr = currentUnit;
 
       const weeksMap = new Map();
-      RAW_DATA.forEach(entry => {{
+      activeData.forEach(entry => {{
         if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
         const parts = entry.date.split('-');
         const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
@@ -1975,10 +2040,10 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
                     const diff = totalFatMassLine[idx] - totalFatMassLine[idx - 1];
                     const diffSign = diff > 0 ? '+' : '';
                     const diffWord = diff < 0 ? ` (${{Math.abs(diff).toFixed(2)}} ${{unitStr}} persi)` : diff > 0 ? ` (+${{diff.toFixed(2)}} ${{unitStr}} presi)` : '';
-                    extra = `\\nDiff. vs Sett. Prec.: ${{diffSign}}${{diff.toFixed(2)}} ${{unitStr}}${{diffWord}}`;
+                    extra = `\nDiff. vs Sett. Prec.: ${{diffSign}}${{diff.toFixed(2)}} ${{unitStr}}${{diffWord}}`;
                   }}
                   if (medW !== null && medF !== null) {{
-                    return `Pesate: ${{wInfo.weights.length}} gg\\nMediana Peso: ${{medW.toFixed(1)}} ${{unitStr}}\\nMediana Grasso: ${{medF.toFixed(1)}}%${{extra}}`;
+                    return `Pesate: ${{wInfo.weights.length}} gg\nMediana Peso: ${{medW.toFixed(1)}} ${{unitStr}}\nMediana Grasso: ${{medF.toFixed(1)}}%${{extra}}`;
                   }}
                   return '';
                 }}
@@ -2014,13 +2079,14 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       const canvas = document.getElementById('weeklyMuscleChart');
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
-      if (!RAW_DATA || RAW_DATA.length === 0) return;
+      const activeData = getActiveData();
+      if (!activeData || activeData.length === 0) return;
 
       const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
       const unitStr = currentUnit;
 
       const weeksMap = new Map();
-      RAW_DATA.forEach(entry => {{
+      activeData.forEach(entry => {{
         if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
         const parts = entry.date.split('-');
         const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
@@ -2140,10 +2206,10 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
                     const diff = totalMuscleLine[idx] - totalMuscleLine[idx - 1];
                     const diffSign = diff > 0 ? '+' : '';
                     const diffWord = diff > 0 ? ` (+${{diff.toFixed(2)}} ${{unitStr}} guadagnati)` : diff < 0 ? ` (${{Math.abs(diff).toFixed(2)}} ${{unitStr}} persi)` : '';
-                    extra = `\\nDiff. vs Sett. Prec.: ${{diffSign}}${{diff.toFixed(2)}} ${{unitStr}}${{diffWord}}`;
+                    extra = `\nDiff. vs Sett. Prec.: ${{diffSign}}${{diff.toFixed(2)}} ${{unitStr}}${{diffWord}}`;
                   }}
                   if (medM !== null) {{
-                    return `Pesate: ${{wInfo.weights.length}} gg\\nMediana Peso: ${{medW ? medW.toFixed(1) : '--'}} ${{unitStr}}${{extra}}`;
+                    return `Pesate: ${{wInfo.weights.length}} gg\nMediana Peso: ${{medW ? medW.toFixed(1) : '--'}} ${{unitStr}}${{extra}}`;
                   }}
                   return '';
                 }}
@@ -2187,7 +2253,8 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       const tbody = document.getElementById('dataTableBody');
       tbody.innerHTML = '';
       const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
-      const reversed = [...RAW_DATA].reverse().slice(0, 30);
+      const activeData = getActiveData();
+      const reversed = [...activeData].reverse().slice(0, 30);
 
       reversed.forEach(row => {{
         const tr = document.createElement('tr');
