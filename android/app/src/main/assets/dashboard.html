@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Garmin Weight & Health Analytics</title>
+  
+  <link rel="apple-touch-icon" href="icon.png" />
+  <link rel="icon" type="image/png" href="icon-192.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#020617" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <!-- Tailwind CSS -->
+  <script src="tailwind.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            },
+            surface: {
+              800: '#1e293b',
+              900: '#0f172a',
+              950: '#020617',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <script src="chart.min.js"></script>
+  <script src="chartjs-chart-boxplot.min.js"></script>
+  <script src="lucide.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="bg-surface-950 text-slate-100 min-h-screen transition-colors duration-200 antialiased">
+  
+  <!-- DASHBOARD WRAPPER -->
+  <div id="dashboardContent" class="transition-opacity duration-300">
+    
+    <!-- Top Navigation Bar -->
+    <header class="border-b border-slate-800 bg-surface-900/80 sticky top-0 z-50 backdrop-blur-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <i data-lucide="scale" class="w-5 h-5 text-white"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-base sm:text-lg text-white leading-tight">Weight Analytics</h1>
+            <p class="text-xs text-slate-400">Garmin Connect</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          <!-- Sync Button (Direct 1-Click to GitHub Actions) -->
+          <button onclick="triggerSync()" id="btnSyncNow" title="Sincronizza con Garmin" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-sm"><i data-lucide="refresh-cw" id="syncIcon" class="w-3.5 h-3.5"></i><span>Sincronizza</span></button>
+
+          <!-- Unit Toggle -->
+          <div class="bg-slate-800 p-1 rounded-lg flex items-center border border-slate-700 text-xs font-semibold">
+            <button id="btnKg" onclick="setUnit('kg')" class="px-2.5 py-1 rounded-md bg-indigo-600 text-white transition">kg</button>
+            <button id="btnLbs" onclick="setUnit('lbs')" class="px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition">lbs</button>
+          </div>
+
+          <!-- Lock / Logout button -->
+          <button onclick="triggerLogout()" title="Esci da Garmin" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+
+      <!-- Metric Stat Cards Grid -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        
+        <!-- Current Weight Card -->
+        <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">
+              Peso Attuale <span id="statWeightDate" class="text-indigo-400 font-semibold normal-case ml-1"></span>
+            </span>
+            <div class="p-1.5 bg-indigo-500/10 text-indigo-400 rounded-lg">
+              <i data-lucide="activity" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-2 sm:mt-3 flex items-baseline space-x-2">
+            <span id="statCurrentWeight" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">--</span>
+            <span id="statUnit1" class="text-xs sm:text-sm font-medium text-slate-400">kg</span>
+          </div>
+          <div class="mt-2 flex items-center text-xs space-x-1">
+            <span class="text-slate-400">Da inizio:</span>
+            <span id="statTotalChange" class="font-semibold">--</span>
+          </div>
+        </div>
+
+        <!-- 7-Day Trend Card -->
+        <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Media 7 Giorni</span>
+            <div class="p-1.5 bg-cyan-500/10 text-cyan-400 rounded-lg">
+              <i data-lucide="trending-down" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-2 sm:mt-3 flex items-baseline space-x-2">
+            <span id="stat7dAvg" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">--</span>
+            <span id="statUnit2" class="text-xs sm:text-sm font-medium text-slate-400">kg</span>
+          </div>
+          <div class="mt-2 flex items-center text-xs space-x-1">
+            <span class="text-slate-400">Delta 7g:</span>
+            <span id="stat7dChange" class="font-semibold">--</span>
+          </div>
+        </div>
+
+        <!-- 30-Day Trend Card -->
+        <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400" title="Mediana settimana in corso − mediana prima settimana">Δ Mediane Sett.</span>
+            <div class="p-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg">
+              <i data-lucide="calendar" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-2 sm:mt-3 flex items-baseline space-x-2">
+            <span id="stat30dChange" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">--</span>
+            <span id="statUnit3" class="text-xs sm:text-sm font-medium text-slate-400">kg</span>
+            <span id="statMedWeeks" class="text-xs font-medium text-slate-400"></span>
+          </div>
+          <div class="mt-2 flex items-center text-xs space-x-1">
+            <span class="text-slate-400">Min/Max:</span>
+            <span id="statMinMax" class="text-slate-300 font-medium">--</span>
+          </div>
+        </div>
+
+        <!-- Body Composition / BMI Card -->
+        <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Composizione</span>
+            <div class="p-1.5 bg-purple-500/10 text-purple-400 rounded-lg">
+              <i data-lucide="heart-pulse" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-2 sm:mt-3 flex items-baseline space-x-3">
+            <div>
+              <span class="text-[10px] text-slate-400 block">BMI</span>
+              <span id="statBMI" class="text-xl sm:text-2xl font-bold text-white">--</span>
+            </div>
+            <div class="border-l border-slate-700 pl-3">
+              <span class="text-[10px] text-slate-400 block">Grasso</span>
+              <span id="statBodyFat" class="text-xl sm:text-2xl font-bold text-white">--</span>
+            </div>
+          </div>
+          <div class="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
+            <span>Muscolo: <span id="statMuscle" class="text-slate-200 font-semibold">--</span></span>
+            <span>Acqua: <span id="statWater" class="text-slate-200 font-semibold">--</span></span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Main Chart Section -->
+      <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 sm:pb-6 border-b border-slate-800">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-white">Progressione del Peso & Medie Mobili</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Misurazioni mattutine e linea di tendenza</p>
+          </div>
+
+          <!-- Time Range Filters -->
+          <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-medium space-x-1 self-start sm:self-auto">
+            <button onclick="setTimeRange('7d')" id="btnRange7d" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">7G</button>
+            <button onclick="setTimeRange('30d')" id="btnRange30d" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">30G</button>
+            <button onclick="setTimeRange('90d')" id="btnRange90d" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">3M</button>
+            <button onclick="setTimeRange('all')" id="btnRangeAll" class="px-2.5 sm:px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition">Tutto (Settembre)</button>
+          </div>
+        </div>
+
+        <!-- Goal & Forecast Control Bar -->
+        <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs">
+          <div class="flex items-center space-x-2.5 flex-wrap gap-y-1.5">
+            <span class="text-amber-400 font-semibold flex items-center space-x-1.5">
+              <i data-lucide="target" class="w-4 h-4"></i>
+              <span>Obiettivo:</span>
+            </span>
+            <div class="flex items-center space-x-1">
+              <input 
+                type="number" 
+                step="0.5" 
+                id="targetWeightInput" 
+                value="80.0" 
+                onchange="setTargetWeight(this.value)" 
+                class="w-16 bg-slate-800 border border-slate-700 focus:border-amber-500 rounded px-2 py-0.5 text-amber-300 font-bold text-center text-xs outline-none transition" 
+              />
+              <span id="targetUnitLabel" class="text-slate-400 font-medium">kg</span>
+            </div>
+            <span class="text-slate-600 hidden sm:inline">&bull;</span>
+            <span class="text-slate-300" id="targetDistWrapper">Distanza: <strong id="targetDistVal" class="text-amber-300 font-bold">--</strong></span>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <span class="text-cyan-400 font-semibold flex items-center space-x-1">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>Forecast Media 7G:</span>
+            </span>
+            <span id="forecastDateBadge" class="px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-bold">
+              Calcolo...
+            </span>
+          </div>
+        </div>
+
+        <div class="mt-4 sm:mt-6 relative h-[320px] sm:h-[380px] w-full">
+          <canvas id="weightChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Weekly Box Plot Section -->
+      <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 sm:pb-4 border-b border-slate-800">
+          <div>
+            <h3 class="font-bold text-white text-base sm:text-lg flex items-center space-x-2">
+              <span>Distribuzione Settimanale (Box Plot)</span>
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">Mediana, quartili (Q1/Q3), min/max, oscillazione e singole pesate per ogni settimana</p>
+          </div>
+          <div class="flex items-center space-x-2 self-start sm:self-auto flex-wrap gap-y-1">
+            <span id="boxplotRangeBadge" class="text-xs px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">
+              Oscillazione media: calcolo...
+            </span>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-medium">
+              Ultima settimana inclusa
+            </span>
+          </div>
+        </div>
+        <div class="mt-4 sm:mt-6 relative h-[320px] sm:h-[360px] w-full">
+          <canvas id="weeklyBoxplotChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Body Composition Chart Section -->
+      <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div>
+            <h3 class="font-bold text-white text-sm sm:text-base">Composizione Corporea nel Tempo</h3>
+            <p class="text-xs text-slate-400">Grasso % e Acqua %</p>
+          </div>
+          <div class="p-1.5 bg-purple-500/10 text-purple-400 rounded-lg">
+            <i data-lucide="pie-chart" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="mt-4 relative h-[240px] sm:h-[260px] w-full">
+          <canvas id="compositionChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Data Table Section -->
+      <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div>
+            <h3 class="font-bold text-white text-sm sm:text-base">Storico Pesate Recenti</h3>
+            <p class="text-xs text-slate-400">Sincronizzate da Garmin Connect</p>
+          </div>
+          <span class="text-xs text-slate-400" id="tableCount"></span>
+        </div>
+
+        <div class="overflow-x-auto mt-4">
+          <table class="w-full text-left text-xs sm:text-sm text-slate-300 whitespace-nowrap">
+            <thead class="text-[11px] uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
+              <tr>
+                <th class="py-2.5 px-3 font-semibold">Data</th>
+                <th class="py-2.5 px-3 font-semibold">Ora</th>
+                <th class="py-2.5 px-3 font-semibold">Peso</th>
+                <th class="py-2.5 px-3 font-semibold">Diff. Giornaliera</th>
+                <th class="py-2.5 px-3 font-semibold">Media 7g</th>
+                <th class="py-2.5 px-3 font-semibold">BMI</th>
+                <th class="py-2.5 px-3 font-semibold">Grasso %</th>
+                <th class="py-2.5 px-3 font-semibold">Muscolo</th>
+              </tr>
+            </thead>
+            <tbody id="dataTableBody" class="divide-y divide-slate-800/60">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Stima Massa Grassa & Massa Muscolare Section -->
+      <div class="space-y-6">
+        
+        <!-- Cards Grid (Fat & Muscle) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          <!-- Stima Massa Grassa Persa Card -->
+          <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm border border-indigo-500/20 bg-gradient-to-r from-indigo-950/40 via-surface-900/60 to-purple-950/40">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+                  <i data-lucide="flame" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+                </div>
+                <div>
+                  <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                    <h3 class="font-bold text-white text-sm sm:text-base">Stima Massa Grassa Persa</h3>
+                    <span id="fatLossPeriodTag" class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">Inizializzazione...</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 mt-0.5">Mediana Peso × Mediana Grasso %</p>
+                </div>
+              </div>
+
+              <div class="flex items-center bg-slate-900/90 px-3 py-2 rounded-xl border border-slate-700/60 space-x-2 sm:space-x-3 self-start sm:self-auto font-mono text-xs">
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold">1ª Sett.</span>
+                  <span id="fatStartDateRange" class="text-[9px] text-slate-500 block font-sans">--</span>
+                  <span id="fatStartVal" class="font-bold text-slate-200 text-xs sm:text-sm mt-0.5 block">--</span>
+                </div>
+                <span class="text-slate-500 text-sm font-bold">−</span>
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold" id="fatCurrLabel">Sett. Usata</span>
+                  <span id="fatCurrDateRange" class="text-[9px] text-cyan-400 block font-sans font-medium">--</span>
+                  <span id="fatCurrVal" class="font-bold text-slate-200 text-xs sm:text-sm mt-0.5 block">--</span>
+                </div>
+                <span class="text-slate-500 text-sm font-bold">=</span>
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold">Diff.</span>
+                  <span id="fatDiffDesc" class="text-[9px] text-slate-500 block font-sans">--</span>
+                  <span id="fatDiffVal" class="font-extrabold text-xs sm:text-sm text-emerald-400 mt-0.5 block">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stima Massa Muscolare Card -->
+          <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm border border-cyan-500/20 bg-gradient-to-r from-cyan-950/40 via-surface-900/60 to-blue-950/40">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-cyan-500/20 text-cyan-400 rounded-xl border border-cyan-500/30">
+                  <i data-lucide="dumbbell" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+                </div>
+                <div>
+                  <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                    <h3 class="font-bold text-white text-sm sm:text-base">Variazione Massa Muscolare</h3>
+                    <span id="musclePeriodTag" class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-medium">Inizializzazione...</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 mt-0.5">Mediana Massa Muscolare (kg)</p>
+                </div>
+              </div>
+
+              <div class="flex items-center bg-slate-900/90 px-3 py-2 rounded-xl border border-slate-700/60 space-x-2 sm:space-x-3 self-start sm:self-auto font-mono text-xs">
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold">1ª Sett.</span>
+                  <span id="muscleStartDateRange" class="text-[9px] text-slate-500 block font-sans">--</span>
+                  <span id="muscleStartVal" class="font-bold text-slate-200 text-xs sm:text-sm mt-0.5 block">--</span>
+                </div>
+                <span class="text-slate-500 text-sm font-bold">vs</span>
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold" id="muscleCurrLabel">Sett. Usata</span>
+                  <span id="muscleCurrDateRange" class="text-[9px] text-cyan-400 block font-sans font-medium">--</span>
+                  <span id="muscleCurrVal" class="font-bold text-slate-200 text-xs sm:text-sm mt-0.5 block">--</span>
+                </div>
+                <span class="text-slate-500 text-sm font-bold">=</span>
+                <div class="text-left">
+                  <span class="text-[9px] uppercase text-slate-400 block font-sans font-semibold">Diff.</span>
+                  <span id="muscleDiffDesc" class="text-[9px] text-slate-500 block font-sans">--</span>
+                  <span id="muscleDiffVal" class="font-extrabold text-xs sm:text-sm text-cyan-400 mt-0.5 block">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Charts Grid (Fat & Muscle) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          <!-- Weekly Fat Mass Trend Chart Card -->
+          <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 sm:pb-4 border-b border-slate-800">
+              <div>
+                <h3 class="font-bold text-white text-sm sm:text-base flex items-center space-x-2">
+                  <span>Progressione Massa Grassa Stimata</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Stima in kg (Mediana Peso × Mediana Grasso %)</p>
+              </div>
+              <span class="text-xs px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 font-medium self-start sm:self-auto">
+                Mediana BIA
+              </span>
+            </div>
+            <div class="mt-4 sm:mt-6 relative h-[260px] sm:h-[290px] w-full">
+              <canvas id="weeklyFatLossChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Weekly Muscle Mass Trend Chart Card -->
+          <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 sm:pb-4 border-b border-slate-800">
+              <div>
+                <h3 class="font-bold text-white text-sm sm:text-base flex items-center space-x-2">
+                  <span>Progressione Massa Muscolare</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Mediana della massa muscolare (kg) per settimana</p>
+              </div>
+              <span class="text-xs px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-medium self-start sm:self-auto">
+                Index Scale
+              </span>
+            </div>
+            <div class="mt-4 sm:mt-6 relative h-[260px] sm:h-[290px] w-full">
+              <canvas id="weeklyMuscleChart"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500">
+      <p>Garmin Connect Sync &bull; Aggiornato automaticamente ogni mattina</p>
+    </footer>
+
+  </div>
+
+  <!-- SCRIPT ENGINE -->
+  <script>
+    let RAW_DATA = [];
+    let SUMMARY = {};
+    let currentUnit = 'kg';
+    let currentTimeRange = 'all';
+    let targetWeightKg = 80.0;
+    let weightChartInstance = null;
+    let compChartInstance = null;
+    let weeklyBoxplotInstance = null;
+    let weeklyFatLossInstance = null;
+    let weeklyMuscleInstance = null;
+
+    function triggerSync() {
+      const icon = document.getElementById('syncIcon');
+      if (icon) icon.classList.add('animate-spin');
+      if (window.Android && window.Android.syncData) {
+        window.Android.syncData();
+      }
+    }
+
+    function triggerLogout() {
+      if (confirm('Vuoi disconnettere il tuo account Garmin da questa app?')) {
+        if (window.Android && window.Android.logout) {
+          window.Android.logout();
+        }
+      }
+    }
+
+    function updateFromAndroid(jsonPayload) {
+      try {
+        const payload = typeof jsonPayload === 'string' ? JSON.parse(jsonPayload) : jsonPayload;
+        RAW_DATA = payload.entries || [];
+        SUMMARY = payload.summary || {};
+        const icon = document.getElementById('syncIcon');
+        if (icon) icon.classList.remove('animate-spin');
+        targetWeightKg = parseFloat(localStorage.getItem('my_weight_target_kg')) || (SUMMARY.target && SUMMARY.target.target_kg) || 80.0;
+        updateStats();
+        renderCharts();
+        renderTable();
+        lucide.createIcons();
+      } catch (e) {
+        console.error('Error applying data from Android:', e);
+      }
+    }
+
+    function setTargetWeight(val) {
+      const num = parseFloat(val);
+      if (!isNaN(num) && num > 0) {
+        targetWeightKg = currentUnit === 'lbs' ? (num / 2.20462) : num;
+        localStorage.setItem('my_weight_target_kg', targetWeightKg);
+        renderMainChart();
+      }
+    }
+
+    function formatDelta(val, unit) {
+      if (val === null || val === undefined || isNaN(val)) return '--';
+      const num = parseFloat(val);
+      const sign = num > 0 ? '+' : '';
+      const color = num < 0 ? 'text-emerald-400' : num > 0 ? 'text-rose-400' : 'text-slate-300';
+      return `<span class="${color}">${sign}${num.toFixed(2)} ${unit}</span>`;
+    }
+
+    function setUnit(unit) {
+      currentUnit = unit;
+      document.getElementById('btnKg').className = unit === 'kg' 
+        ? 'px-2.5 py-1 rounded-md bg-indigo-600 text-white transition'
+        : 'px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition';
+      document.getElementById('btnLbs').className = unit === 'lbs'
+        ? 'px-2.5 py-1 rounded-md bg-indigo-600 text-white transition'
+        : 'px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition';
+
+      document.querySelectorAll('#statUnit1, #statUnit2, #statUnit3').forEach(el => el.textContent = unit);
+
+      const targetInput = document.getElementById('targetWeightInput');
+      const targetUnit = document.getElementById('targetUnitLabel');
+      if (targetInput) targetInput.value = (targetWeightKg * (unit === 'lbs' ? 2.20462 : 1.0)).toFixed(1);
+      if (targetUnit) targetUnit.textContent = unit;
+
+      updateStats();
+      renderCharts();
+      renderTable();
+    }
+
+    function setTimeRange(range) {
+      currentTimeRange = range;
+      ['7d', '30d', '90d', 'all'].forEach(r => {
+        const btn = document.getElementById('btnRange' + (r === 'all' ? 'All' : r));
+        if (btn) {
+          btn.className = (r === range)
+            ? 'px-2.5 sm:px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition'
+            : 'px-2.5 sm:px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition';
+        }
+      });
+      renderMainChart();
+    }
+
+    function getFilteredData() {
+      if (!RAW_DATA || RAW_DATA.length === 0) return [];
+      if (currentTimeRange === 'all') return RAW_DATA;
+      
+      const days = currentTimeRange === '7d' ? 7 : currentTimeRange === '30d' ? 30 : 90;
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      const cutoffStr = cutoff.toISOString().slice(0, 10);
+      
+      return RAW_DATA.filter(d => d.date >= cutoffStr);
+    }
+
+    function getMedian(arr) {
+      if (!arr || arr.length === 0) return null;
+      const sorted = [...arr].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    }
+
+    function calculateFatLossStats() {
+      if (!RAW_DATA || RAW_DATA.length === 0) return;
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+      const unitStr = currentUnit;
+
+      const weeksMap = new Map();
+      RAW_DATA.forEach(entry => {
+        if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
+        const parts = entry.date.split('-');
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const dayOfWeek = (d.getDay() + 6) % 7; // 0 = Mon, 6 = Sun
+        const mon = new Date(d);
+        mon.setDate(d.getDate() - dayOfWeek);
+        const sun = new Date(mon);
+        sun.setDate(mon.getDate() + 6);
+        const key = mon.toISOString().slice(0, 10);
+        if (!weeksMap.has(key)) {
+          weeksMap.set(key, {
+            monday: mon,
+            sunday: sun,
+            weights: [],
+            bodyFats: [],
+            muscles: []
+          });
+        }
+        weeksMap.get(key).weights.push(entry.weight_kg * mult);
+        if (entry.body_fat_pct !== null && entry.body_fat_pct !== undefined && !isNaN(entry.body_fat_pct)) {
+          weeksMap.get(key).bodyFats.push(entry.body_fat_pct);
+        }
+        if (entry.muscle_mass_kg !== null && entry.muscle_mass_kg !== undefined && !isNaN(entry.muscle_mass_kg)) {
+          weeksMap.get(key).muscles.push(entry.muscle_mass_kg * mult);
+        }
+      });
+
+      const sortedWeeks = Array.from(weeksMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      if (sortedWeeks.length === 0) return;
+
+      const monthsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+
+      // First week
+      const firstWeek = sortedWeeks[0][1];
+      const w1WeightMed = getMedian(firstWeek.weights);
+      const w1FatMed = getMedian(firstWeek.bodyFats);
+      const w1MonStr = `${firstWeek.monday.getDate()} ${monthsShort[firstWeek.monday.getMonth()]}`;
+      const w1SunStr = `${firstWeek.sunday.getDate()} ${monthsShort[firstWeek.sunday.getMonth()]}`;
+      const w1RangeStr = `${w1MonStr} – ${w1SunStr}`;
+
+      // Latest week & check if >= 4 weigh-ins
+      const latestWeekIndex = sortedWeeks.length - 1;
+      const latestWeek = sortedWeeks[latestWeekIndex][1];
+      const hasMin4Days = latestWeek.weights.length >= 4;
+
+      let targetWeek;
+      let targetLabel;
+      let periodTagText;
+      let targetWeekIdx;
+      let targetMonStr;
+      let targetSunStr;
+      let targetRangeStr;
+
+      if (hasMin4Days || sortedWeeks.length === 1) {
+        targetWeekIdx = latestWeekIndex;
+        targetWeek = latestWeek;
+        targetLabel = "Sett. in corso";
+        targetMonStr = `${targetWeek.monday.getDate()} ${monthsShort[targetWeek.monday.getMonth()]}`;
+        targetSunStr = `${targetWeek.sunday.getDate()} ${monthsShort[targetWeek.sunday.getMonth()]}`;
+        targetRangeStr = `${targetMonStr} – ${targetSunStr}`;
+        periodTagText = `Confronto: Settimana in corso (${targetRangeStr} &bull; ${targetWeek.weights.length} pesate)`;
+      } else {
+        // Use previous week
+        targetWeekIdx = latestWeekIndex - 1;
+        targetWeek = sortedWeeks[targetWeekIdx][1];
+        targetLabel = "Sett. precedente";
+        targetMonStr = `${targetWeek.monday.getDate()} ${monthsShort[targetWeek.monday.getMonth()]}`;
+        targetSunStr = `${targetWeek.sunday.getDate()} ${monthsShort[targetWeek.sunday.getMonth()]}`;
+        targetRangeStr = `${targetMonStr} – ${targetSunStr}`;
+        periodTagText = `Confronto: Sett. precedente (${targetRangeStr}) &bull; in corso < 4 pesate (${latestWeek.weights.length} gg)`;
+      }
+
+      const targetWeightMed = getMedian(targetWeek.weights);
+      const targetFatMed = getMedian(targetWeek.bodyFats);
+
+      if (w1WeightMed !== null && w1FatMed !== null && targetWeightMed !== null && targetFatMed !== null) {
+        const fatStart = w1WeightMed * (w1FatMed / 100);
+        const fatCurrent = targetWeightMed * (targetFatMed / 100);
+        const fatDiff = fatStart - fatCurrent;
+
+        const numWeeks = Math.max(1, targetWeekIdx);
+        const weeklyRate = fatDiff / numWeeks;
+        const weeklyRateAbs = Math.abs(weeklyRate).toFixed(2);
+
+        document.getElementById('fatStartDateRange').textContent = w1RangeStr;
+        document.getElementById('fatStartVal').textContent = `${fatStart.toFixed(2)} ${unitStr}`;
+
+        document.getElementById('fatCurrLabel').textContent = targetLabel;
+        document.getElementById('fatCurrDateRange').textContent = targetRangeStr;
+        document.getElementById('fatCurrVal').textContent = `${fatCurrent.toFixed(2)} ${unitStr}`;
+
+        document.getElementById('fatLossPeriodTag').innerHTML = `${periodTagText} &bull; ${numWeeks} sett.`;
+        document.getElementById('fatDiffDesc').textContent = `su ${numWeeks} sett. (${w1MonStr} → ${targetSunStr})`;
+
+        const diffEl = document.getElementById('fatDiffVal');
+        const diffAbs = Math.abs(fatDiff).toFixed(2);
+        if (fatDiff > 0) {
+          diffEl.className = "font-extrabold text-xs sm:text-sm text-emerald-400 mt-0.5 block";
+          diffEl.textContent = `-${diffAbs} ${unitStr} (${weeklyRateAbs} ${unitStr}/sett.)`;
+        } else if (fatDiff < 0) {
+          diffEl.className = "font-extrabold text-xs sm:text-sm text-rose-400 mt-0.5 block";
+          diffEl.textContent = `+${diffAbs} ${unitStr} (+${weeklyRateAbs} ${unitStr}/sett.)`;
+        } else {
+          diffEl.className = "font-extrabold text-xs sm:text-sm text-slate-300 mt-0.5 block";
+          diffEl.textContent = `0.00 ${unitStr} (0.00 ${unitStr}/sett.)`;
+        }
+      } else {
+        document.getElementById('fatStartVal').textContent = '--';
+        document.getElementById('fatCurrVal').textContent = '--';
+        document.getElementById('fatDiffVal').textContent = '--';
+        document.getElementById('fatStartDateRange').textContent = '--';
+        document.getElementById('fatCurrDateRange').textContent = '--';
+        document.getElementById('fatDiffDesc').textContent = '--';
+        document.getElementById('fatLossPeriodTag').textContent = 'Dati parziali';
+      }
+
+      // Muscle Stats calculation
+      const w1MuscleMed = getMedian(firstWeek.muscles);
+      const targetMuscleMed = getMedian(targetWeek.muscles);
+
+      if (w1MuscleMed !== null && targetMuscleMed !== null) {
+        const muscleDiff = targetMuscleMed - w1MuscleMed;
+        const numWeeks = Math.max(1, targetWeekIdx);
+        const muscleWeeklyRate = Math.abs(muscleDiff / numWeeks).toFixed(2);
+        const muscleDiffAbs = Math.abs(muscleDiff).toFixed(2);
+
+        document.getElementById('muscleStartDateRange').textContent = w1RangeStr;
+        document.getElementById('muscleStartVal').textContent = `${w1MuscleMed.toFixed(2)} ${unitStr}`;
+
+        document.getElementById('muscleCurrLabel').textContent = targetLabel;
+        document.getElementById('muscleCurrDateRange').textContent = targetRangeStr;
+        document.getElementById('muscleCurrVal').textContent = `${targetMuscleMed.toFixed(2)} ${unitStr}`;
+
+        document.getElementById('musclePeriodTag').innerHTML = `${periodTagText} &bull; ${numWeeks} sett.`;
+        document.getElementById('muscleDiffDesc').textContent = `su ${numWeeks} sett. (${w1MonStr} → ${targetSunStr})`;
+
+        const mDiffEl = document.getElementById('muscleDiffVal');
+        if (muscleDiff > 0) {
+          mDiffEl.className = "font-extrabold text-xs sm:text-sm text-cyan-400 mt-0.5 block";
+          mDiffEl.textContent = `+${muscleDiffAbs} ${unitStr} (+${muscleWeeklyRate} ${unitStr}/sett.)`;
+        } else if (muscleDiff < 0) {
+          mDiffEl.className = "font-extrabold text-xs sm:text-sm text-amber-400 mt-0.5 block";
+          mDiffEl.textContent = `-${muscleDiffAbs} ${unitStr} (-${muscleWeeklyRate} ${unitStr}/sett.)`;
+        } else {
+          mDiffEl.className = "font-extrabold text-xs sm:text-sm text-slate-300 mt-0.5 block";
+          mDiffEl.textContent = `0.00 ${unitStr} (0.00 ${unitStr}/sett.)`;
+        }
+      } else {
+        document.getElementById('muscleStartVal').textContent = '--';
+        document.getElementById('muscleCurrVal').textContent = '--';
+        document.getElementById('muscleDiffVal').textContent = '--';
+        document.getElementById('muscleStartDateRange').textContent = '--';
+        document.getElementById('muscleCurrDateRange').textContent = '--';
+        document.getElementById('muscleDiffDesc').textContent = '--';
+        document.getElementById('musclePeriodTag').textContent = 'Dati parziali';
+      }
+    }
+
+    function updateStats() {
+      if (!RAW_DATA || RAW_DATA.length === 0) return;
+      
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+      const unitStr = currentUnit;
+
+      const latest = RAW_DATA[RAW_DATA.length - 1];
+      const curW = (latest.weight_kg * mult).toFixed(1);
+      document.getElementById('statCurrentWeight').textContent = curW;
+
+      if (latest && latest.date) {
+        const parts = latest.date.split('-');
+        const dObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const daysShort = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
+        const monthsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+        const dayStr = `${daysShort[dObj.getDay()]} ${dObj.getDate()} ${monthsShort[dObj.getMonth()]}`;
+        const dateEl = document.getElementById('statWeightDate');
+        if (dateEl) dateEl.textContent = `(${dayStr})`;
+      }
+
+      const totalDiff = ((SUMMARY.total_change_kg || 0) * mult);
+      document.getElementById('statTotalChange').innerHTML = formatDelta(totalDiff, unitStr);
+
+      const ma7 = latest.ma_7d ? (latest.ma_7d * mult).toFixed(1) : curW;
+      document.getElementById('stat7dAvg').textContent = ma7;
+
+      const diff7d = ((SUMMARY.change_7d_kg || 0) * mult);
+      document.getElementById('stat7dChange').innerHTML = formatDelta(diff7d, unitStr);
+
+      // Difference between weekly medians: current week (in corso) − first week
+      const weekWeights = new Map();
+      RAW_DATA.forEach(entry => {
+        if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
+        const p = entry.date.split('-');
+        const d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+        const mon = new Date(d);
+        mon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+        const key = `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, '0')}-${String(mon.getDate()).padStart(2, '0')}`;
+        if (!weekWeights.has(key)) weekWeights.set(key, []);
+        weekWeights.get(key).push(entry.weight_kg * mult);
+      });
+      const weekKeys = Array.from(weekWeights.keys()).sort();
+      const medDiffEl = document.getElementById('stat30dChange');
+      if (weekKeys.length > 0) {
+        // Current week counts only with >= 4 weigh-ins, otherwise use previous week
+        const lastIdx = weekKeys.length - 1;
+        const useCurrent = weekWeights.get(weekKeys[lastIdx]).length >= 4 || weekKeys.length === 1;
+        const targetIdx = useCurrent ? lastIdx : lastIdx - 1;
+        const firstMed = getMedian(weekWeights.get(weekKeys[0]));
+        const targetMed = getMedian(weekWeights.get(weekKeys[targetIdx]));
+        const medDiff = targetMed - firstMed;
+        medDiffEl.textContent = (medDiff > 0 ? '+' : '') + medDiff.toFixed(1);
+        medDiffEl.title = `Mediana ${useCurrent ? 'sett. in corso' : 'sett. precedente'} ${targetMed.toFixed(2)} ${unitStr} − prima sett. ${firstMed.toFixed(2)} ${unitStr}`;
+        // Same week count as the boxplot (weeks from first to target, inclusive)
+        const numWeeksMed = targetIdx + 1;
+        document.getElementById('statMedWeeks').textContent = `dopo ${numWeeksMed} ${numWeeksMed === 1 ? 'settimana' : 'settimane'}`;
+      } else {
+        medDiffEl.textContent = '--';
+        document.getElementById('statMedWeeks').textContent = '';
+      }
+
+      const minW = ((SUMMARY.min_weight_kg || 0) * mult).toFixed(1);
+      const maxW = ((SUMMARY.max_weight_kg || 0) * mult).toFixed(1);
+      document.getElementById('statMinMax').textContent = `${minW} - ${maxW} ${unitStr}`;
+
+      document.getElementById('statBMI').textContent = latest.bmi ? latest.bmi.toFixed(1) : '--';
+      document.getElementById('statBodyFat').textContent = latest.body_fat_pct ? `${latest.body_fat_pct}%` : '--';
+      document.getElementById('statMuscle').textContent = latest.muscle_mass_kg ? `${(latest.muscle_mass_kg * mult).toFixed(1)} ${unitStr}` : '--';
+      document.getElementById('statWater').textContent = latest.body_water_pct ? `${latest.body_water_pct}%` : '--';
+
+      try { calculateFatLossStats(); } catch(e) { console.error("Error in calculateFatLossStats:", e); }
+    }
+
+    function renderMainChart() {
+      const ctx = document.getElementById('weightChart').getContext('2d');
+      const filtered = getFilteredData();
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+      const unitStr = currentUnit;
+
+      const targetVal = targetWeightKg * mult;
+      const targetInp = document.getElementById('targetWeightInput');
+      if (targetInp && document.activeElement !== targetInp) {
+        targetInp.value = targetVal.toFixed(1);
+      }
+      const targetUnitLbl = document.getElementById('targetUnitLabel');
+      if (targetUnitLbl) targetUnitLbl.textContent = unitStr;
+
+      const histLabels = filtered.map(d => d.date);
+      const weights = filtered.map(d => (d.weight_kg * mult));
+      const ma7 = filtered.map(d => d.ma_7d ? (d.ma_7d * mult) : null);
+      const ma30 = filtered.map(d => d.ma_30d ? (d.ma_30d * mult) : null);
+
+      // Distance to goal
+      const latestEntry = filtered.length > 0 ? filtered[filtered.length - 1] : null;
+      const latestWeight = latestEntry ? latestEntry.weight_kg * mult : null;
+      const latestMa7 = (latestEntry && latestEntry.ma_7d) ? latestEntry.ma_7d * mult : latestWeight;
+      const distEl = document.getElementById('targetDistVal');
+      if (distEl && latestWeight !== null) {
+        const diff = latestWeight - targetVal;
+        if (diff > 0.05) {
+          distEl.textContent = `-${diff.toFixed(1)} ${unitStr} all'obiettivo`;
+        } else if (diff < -0.05) {
+          distEl.textContent = `+${Math.abs(diff).toFixed(1)} ${unitStr} oltre l'obiettivo`;
+        } else {
+          distEl.textContent = `0.0 ${unitStr} (Raggiunto! 🎉)`;
+        }
+      }
+
+      // 7-day MA linear regression slope calculation over recent points (up to 28 days)
+      const recentWithMa = RAW_DATA.filter(d => d.ma_7d !== null && d.ma_7d !== undefined);
+      const recentEntries = recentWithMa.slice(-28);
+      let slopePerDay = 0;
+      if (recentEntries.length >= 4) {
+        const n = recentEntries.length;
+        let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+        recentEntries.forEach((e, i) => {
+          const y = e.ma_7d * mult;
+          sumX += i;
+          sumY += y;
+          sumXY += i * y;
+          sumX2 += i * i;
+        });
+        const denom = (n * sumX2 - sumX * sumX);
+        if (denom !== 0) {
+          slopePerDay = (n * sumXY - sumX * sumY) / denom;
+        }
+      }
+
+      // Forecast future trajectory
+      const futureLabels = [];
+      const forecastPoints = [];
+      const badgeEl = document.getElementById('forecastDateBadge');
+
+      if (latestEntry && latestMa7 !== null) {
+        const diffToTarget = targetVal - latestMa7;
+        const monthsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+
+        if (Math.abs(diffToTarget) <= 0.1) {
+          if (badgeEl) badgeEl.innerHTML = `<span class="text-emerald-400">🎉 Obiettivo Raggiunto!</span>`;
+        } else if (diffToTarget < 0 && slopePerDay < -0.005) {
+          const daysNeeded = Math.min(365, Math.max(1, Math.round(Math.abs(diffToTarget) / Math.abs(slopePerDay))));
+          const lastDateParts = latestEntry.date.split('-');
+          const lastDateObj = new Date(parseInt(lastDateParts[0]), parseInt(lastDateParts[1]) - 1, parseInt(lastDateParts[2]));
+          const targetDateObj = new Date(lastDateObj);
+          targetDateObj.setDate(lastDateObj.getDate() + daysNeeded);
+
+          const targetDateStr = `${targetDateObj.getDate()} ${monthsShort[targetDateObj.getMonth()]} ${targetDateObj.getFullYear()}`;
+          const weeksNeeded = (daysNeeded / 7).toFixed(1);
+          const weeklyRate = (Math.abs(slopePerDay) * 7).toFixed(2);
+
+          if (badgeEl) badgeEl.innerHTML = `<span>🎯 <strong>${targetDateStr}</strong> (~${weeksNeeded} sett. a -${weeklyRate} ${unitStr}/sett.)</span>`;
+
+          const stepCount = Math.min(daysNeeded, 120);
+          for (let i = 1; i <= stepCount; i++) {
+            const futureD = new Date(lastDateObj);
+            futureD.setDate(lastDateObj.getDate() + i);
+            futureLabels.push(futureD.toISOString().slice(0, 10));
+            const projWeight = Math.max(targetVal, latestMa7 + slopePerDay * i);
+            forecastPoints.push(projWeight);
+          }
+        } else if (diffToTarget > 0 && slopePerDay > 0.005) {
+          const daysNeeded = Math.min(365, Math.max(1, Math.round(diffToTarget / slopePerDay)));
+          const lastDateParts = latestEntry.date.split('-');
+          const lastDateObj = new Date(parseInt(lastDateParts[0]), parseInt(lastDateParts[1]) - 1, parseInt(lastDateParts[2]));
+          const targetDateObj = new Date(lastDateObj);
+          targetDateObj.setDate(lastDateObj.getDate() + daysNeeded);
+
+          const targetDateStr = `${targetDateObj.getDate()} ${monthsShort[targetDateObj.getMonth()]} ${targetDateObj.getFullYear()}`;
+          const weeksNeeded = (daysNeeded / 7).toFixed(1);
+          const weeklyRate = (slopePerDay * 7).toFixed(2);
+
+          if (badgeEl) badgeEl.innerHTML = `<span>🎯 <strong>${targetDateStr}</strong> (~${weeksNeeded} sett. a +${weeklyRate} ${unitStr}/sett.)</span>`;
+
+          const stepCount = Math.min(daysNeeded, 120);
+          for (let i = 1; i <= stepCount; i++) {
+            const futureD = new Date(lastDateObj);
+            futureD.setDate(lastDateObj.getDate() + i);
+            futureLabels.push(futureD.toISOString().slice(0, 10));
+            const projWeight = Math.min(targetVal, latestMa7 + slopePerDay * i);
+            forecastPoints.push(projWeight);
+          }
+        } else {
+          const weeklyRate = (slopePerDay * 7).toFixed(2);
+          if (badgeEl) badgeEl.innerHTML = `<span class="text-amber-400">Trend 7G stabile (${weeklyRate >= 0 ? '+' : ''}${weeklyRate} ${unitStr}/sett.)</span>`;
+        }
+      }
+
+      const allLabels = [...histLabels, ...futureLabels];
+      const paddedWeights = [...weights, ...Array(futureLabels.length).fill(null)];
+      const paddedMa7 = [...ma7, ...Array(futureLabels.length).fill(null)];
+      const paddedMa30 = [...ma30, ...Array(futureLabels.length).fill(null)];
+
+      const forecastSeries = Array(Math.max(0, histLabels.length - 1)).fill(null);
+      if (latestMa7 !== null && forecastPoints.length > 0) {
+        forecastSeries.push(latestMa7);
+        forecastSeries.push(...forecastPoints);
+      } else if (histLabels.length > 0) {
+        forecastSeries.push(null);
+      }
+
+      const targetSeries = Array(allLabels.length).fill(targetVal);
+
+      const allValues = [...paddedWeights, ...paddedMa7, ...paddedMa30, targetVal, ...forecastPoints].filter(v => v !== null && !isNaN(v));
+      const minW = allValues.length > 0 ? Math.floor(Math.min(...allValues) - 1) : undefined;
+      const maxW = allValues.length > 0 ? Math.ceil(Math.max(...allValues) + 1) : undefined;
+
+      if (weightChartInstance) {
+        weightChartInstance.destroy();
+      }
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+      gradient.addColorStop(0, 'rgba(99, 102, 241, 0.35)');
+      gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+      weightChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: allLabels,
+          datasets: [
+            {
+              label: `Peso Giornaliero (${unitStr})`,
+              data: paddedWeights,
+              borderColor: '#818cf8',
+              backgroundColor: gradient,
+              borderWidth: 2.5,
+              fill: true,
+              tension: 0.3,
+              pointBackgroundColor: '#6366f1',
+              pointBorderColor: '#ffffff',
+              pointHoverRadius: 6,
+              pointRadius: filtered.length > 60 ? 2 : 4,
+            },
+            {
+              label: `Media 7 Giorni`,
+              data: paddedMa7,
+              borderColor: '#38bdf8',
+              borderWidth: 2.5,
+              fill: false,
+              tension: 0.3,
+              pointRadius: 0,
+            },
+            {
+              label: `Forecast Trend 7G`,
+              data: forecastSeries,
+              borderColor: '#06b6d4',
+              borderWidth: 2,
+              borderDash: [4, 4],
+              fill: false,
+              tension: 0.1,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+            },
+            {
+              label: `Media 30 Giorni`,
+              data: paddedMa30,
+              borderColor: '#34d399',
+              borderWidth: 1.8,
+              borderDash: [3, 3],
+              fill: false,
+              tension: 0.3,
+              pointRadius: 0,
+            },
+            {
+              label: `Obiettivo (${targetVal.toFixed(1)} ${unitStr})`,
+              data: targetSeries,
+              borderColor: '#f59e0b',
+              borderWidth: 2,
+              borderDash: [6, 4],
+              fill: false,
+              tension: 0,
+              pointRadius: 0,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                color: '#94a3b8',
+                boxWidth: 12,
+                usePointStyle: true,
+                font: { family: 'Inter', size: 12 }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              titleColor: '#f8fafc',
+              bodyColor: '#cbd5e1',
+              borderColor: '#334155',
+              borderWidth: 1,
+              padding: 12,
+              callbacks: {
+                label: function(context) {
+                  const val = context.parsed.y;
+                  if (val === null || val === undefined) return '';
+                  return `${context.dataset.label}: ${val.toFixed(1)} ${unitStr}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#64748b', maxTicksLimit: 10 }
+            },
+            y: {
+              min: minW,
+              max: maxW,
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: {
+                color: '#64748b',
+                callback: (val) => `${val.toFixed(1)} ${unitStr}`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderCompositionChart() {
+      const ctx = document.getElementById('compositionChart').getContext('2d');
+      const filtered = RAW_DATA.filter(d => d.body_fat_pct !== null || d.muscle_mass_kg !== null);
+      if (filtered.length === 0) return;
+
+      const labels = filtered.map(d => d.date);
+      const fat = filtered.map(d => d.body_fat_pct);
+      const water = filtered.map(d => d.body_water_pct);
+
+      const validVals = [...fat, ...water].filter(v => v !== null && !isNaN(v));
+      const minPct = validVals.length > 0 ? Math.floor(Math.min(...validVals) - 2) : undefined;
+      const maxPct = validVals.length > 0 ? Math.ceil(Math.max(...validVals) + 2) : undefined;
+
+      if (compChartInstance) compChartInstance.destroy();
+
+      compChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Grasso Corporeo %',
+              data: fat,
+              borderColor: '#c084fc',
+              backgroundColor: 'rgba(192, 132, 252, 0.1)',
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 2,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Acqua Corporea %',
+              data: water,
+              borderColor: '#22d3ee',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 2,
+              yAxisID: 'y'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#94a3b8', boxWidth: 12, usePointStyle: true } }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#64748b', maxTicksLimit: 6 } },
+            y: {
+              min: minPct,
+              max: maxPct,
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#64748b', callback: (v) => `${v}%` }
+            }
+          }
+        }
+      });
+    }
+
+
+    function renderWeeklyBoxplot() {
+      const canvas = document.getElementById('weeklyBoxplotChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!RAW_DATA || RAW_DATA.length === 0) return;
+
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+
+      // Group entries by Monday-Sunday calendar week
+      const weeksMap = new Map();
+
+      RAW_DATA.forEach(entry => {
+        if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
+        
+        const parts = entry.date.split('-');
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        
+        // Find Monday of this week (0=Mon, 6=Sun)
+        const dayOfWeek = (d.getDay() + 6) % 7;
+        const mon = new Date(d);
+        mon.setDate(d.getDate() - dayOfWeek);
+        
+        const sun = new Date(mon);
+        sun.setDate(mon.getDate() + 6);
+
+        const key = mon.toISOString().slice(0, 10);
+        if (!weeksMap.has(key)) {
+          weeksMap.set(key, {
+            monday: mon,
+            sunday: sun,
+            weights: []
+          });
+        }
+        weeksMap.get(key).weights.push(entry.weight_kg * mult);
+      });
+
+      const sortedWeeks = Array.from(weeksMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      if (sortedWeeks.length === 0) return;
+
+      const monthsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+      const labels = [];
+      const boxData = [];
+      const bgColors = [];
+      const borderColors = [];
+
+      sortedWeeks.forEach(([key, info], idx) => {
+        const isCurrentWeek = (idx === sortedWeeks.length - 1);
+        const monStr = `${info.monday.getDate()} ${monthsShort[info.monday.getMonth()]}`;
+        const sunStr = `${info.sunday.getDate()} ${monthsShort[info.sunday.getMonth()]}`;
+        const label = `${monStr} - ${sunStr}${isCurrentWeek ? ' (in corso)' : ''}`;
+        
+        labels.push(label);
+        boxData.push(info.weights);
+
+        if (isCurrentWeek) {
+          bgColors.push('rgba(34, 211, 238, 0.35)'); // cyan for current week
+          borderColors.push('#22d3ee');
+        } else {
+          bgColors.push('rgba(99, 102, 241, 0.35)'); // indigo for past weeks
+          borderColors.push('#818cf8');
+        }
+      });
+
+      const flatWeights = boxData.flat().filter(w => w !== null && !isNaN(w));
+      const minW = flatWeights.length > 0 ? Math.floor(Math.min(...flatWeights) - 1) : undefined;
+      const maxW = flatWeights.length > 0 ? Math.ceil(Math.max(...flatWeights) + 1) : undefined;
+
+      const completedWeeksRanges = sortedWeeks
+        .filter(([_, info]) => info.weights.length >= 3)
+        .map(([_, info]) => Math.max(...info.weights) - Math.min(...info.weights));
+
+      const avgOscillation = completedWeeksRanges.length > 0 
+        ? (completedWeeksRanges.reduce((a, b) => a + b, 0) / completedWeeksRanges.length).toFixed(2)
+        : null;
+
+      const badge = document.getElementById('boxplotRangeBadge');
+      if (badge) {
+        badge.textContent = avgOscillation !== null 
+          ? `Oscillazione tipica: ~${avgOscillation} ${currentUnit} (±${(avgOscillation/2).toFixed(2)} ${currentUnit})`
+          : `Oscillazione tipica: --`;
+      }
+
+      if (weeklyBoxplotInstance) {
+        weeklyBoxplotInstance.destroy();
+      }
+
+      weeklyBoxplotInstance = new Chart(ctx, {
+        type: 'boxplot',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: `Distribuzione Peso (${currentUnit})`,
+            data: boxData,
+            backgroundColor: bgColors,
+            borderColor: borderColors,
+            borderWidth: 1.5,
+            itemRadius: 3.5,
+            itemBackgroundColor: 'rgba(255, 255, 255, 0.7)',
+            itemBorderColor: '#0f172a',
+            itemBorderWidth: 1,
+            outlierBackgroundColor: '#f43f5e',
+            outlierBorderColor: '#fda4af',
+            padding: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              labels: {
+                color: '#94a3b8',
+                boxWidth: 12,
+                font: { family: 'Inter', size: 12 }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              titleColor: '#f8fafc',
+              bodyColor: '#cbd5e1',
+              borderColor: '#334155',
+              borderWidth: 1,
+              padding: 12,
+              callbacks: {
+                afterBody: function(context) {
+                  const item = context[0];
+                  if (!item) return '';
+                  const rawArr = sortedWeeks[item.dataIndex][1].weights;
+                  const count = rawArr.length;
+                  if (count === 0) return '';
+                  const avg = (rawArr.reduce((a, b) => a + b, 0) / count).toFixed(2);
+                  const minVal = Math.min(...rawArr).toFixed(2);
+                  const maxVal = Math.max(...rawArr).toFixed(2);
+                  const rangeVal = (Math.max(...rawArr) - Math.min(...rawArr)).toFixed(2);
+                  const medVal = getMedian(rawArr).toFixed(2);
+
+                  return `\nPesate registrate: ${count} gg` +
+                         `\nMediana: ${medVal} ${currentUnit} (Media: ${avg} ${currentUnit})` +
+                         `\nOscillazione (Max - Min): ${rangeVal} ${currentUnit}` +
+                         `\n(Min: ${minVal} - Max: ${maxVal} ${currentUnit})`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } }
+            },
+            y: {
+              min: minW,
+              max: maxW,
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: {
+                color: '#64748b',
+                callback: (val) => `${val.toFixed(1)} ${currentUnit}`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderWeeklyFatLossChart() {
+      const canvas = document.getElementById('weeklyFatLossChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!RAW_DATA || RAW_DATA.length === 0) return;
+
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+      const unitStr = currentUnit;
+
+      const weeksMap = new Map();
+      RAW_DATA.forEach(entry => {
+        if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
+        const parts = entry.date.split('-');
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const dayOfWeek = (d.getDay() + 6) % 7;
+        const mon = new Date(d);
+        mon.setDate(d.getDate() - dayOfWeek);
+        const sun = new Date(mon);
+        sun.setDate(mon.getDate() + 6);
+        const key = mon.toISOString().slice(0, 10);
+        if (!weeksMap.has(key)) {
+          weeksMap.set(key, {
+            monday: mon,
+            sunday: sun,
+            weights: [],
+            bodyFats: []
+          });
+        }
+        weeksMap.get(key).weights.push(entry.weight_kg * mult);
+        if (entry.body_fat_pct !== null && entry.body_fat_pct !== undefined && !isNaN(entry.body_fat_pct)) {
+          weeksMap.get(key).bodyFats.push(entry.body_fat_pct);
+        }
+      });
+
+      const sortedWeeks = Array.from(weeksMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      if (sortedWeeks.length === 0) return;
+
+      const monthsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+      const labels = [];
+      const totalFatMassLine = [];
+
+      sortedWeeks.forEach(([key, info], idx) => {
+        const isCurrentWeek = (idx === sortedWeeks.length - 1);
+        const monStr = `${info.monday.getDate()} ${monthsShort[info.monday.getMonth()]}`;
+        const sunStr = `${info.sunday.getDate()} ${monthsShort[info.sunday.getMonth()]}`;
+        const label = `${monStr} - ${sunStr}${isCurrentWeek ? ' (in corso)' : ''}`;
+        labels.push(label);
+
+        const medW = getMedian(info.weights);
+        const medF = getMedian(info.bodyFats);
+
+        if (medW !== null && medF !== null) {
+          const fatMass = medW * (medF / 100);
+          totalFatMassLine.push(parseFloat(fatMass.toFixed(2)));
+        } else {
+          totalFatMassLine.push(null);
+        }
+      });
+
+      const validFatVals = totalFatMassLine.filter(v => v !== null && !isNaN(v));
+      const minFat = validFatVals.length > 0 ? Math.floor(Math.min(...validFatVals) - 0.5) : undefined;
+      const maxFat = validFatVals.length > 0 ? Math.ceil(Math.max(...validFatVals) + 0.5) : undefined;
+
+      if (weeklyFatLossInstance) {
+        weeklyFatLossInstance.destroy();
+      }
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+      gradient.addColorStop(0, 'rgba(168, 85, 247, 0.35)');
+      gradient.addColorStop(1, 'rgba(168, 85, 247, 0.0)');
+
+      weeklyFatLossInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: `Massa Grassa Totale Stimata (${unitStr})`,
+              data: totalFatMassLine,
+              borderColor: '#c084fc',
+              backgroundColor: gradient,
+              borderWidth: 2.5,
+              fill: true,
+              tension: 0.25,
+              pointBackgroundColor: '#a855f7',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 1.5,
+              pointRadius: 4.5,
+              pointHoverRadius: 6.5
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              display: true,
+              labels: {
+                color: '#94a3b8',
+                boxWidth: 12,
+                font: { family: 'Inter', size: 12 }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              titleColor: '#f8fafc',
+              bodyColor: '#cbd5e1',
+              borderColor: '#334155',
+              borderWidth: 1,
+              padding: 12,
+              callbacks: {
+                label: function(context) {
+                  const val = context.parsed.y;
+                  if (val === null || val === undefined) return '';
+                  return `Massa Grassa: ${val.toFixed(2)} ${unitStr}`;
+                },
+                afterBody: function(context) {
+                  const item = context[0];
+                  if (!item) return '';
+                  const idx = item.dataIndex;
+                  const wInfo = sortedWeeks[idx][1];
+                  const medW = getMedian(wInfo.weights);
+                  const medF = getMedian(wInfo.bodyFats);
+                  let extra = '';
+                  if (idx > 0 && totalFatMassLine[idx] !== null && totalFatMassLine[idx - 1] !== null) {
+                    const diff = totalFatMassLine[idx] - totalFatMassLine[idx - 1];
+                    const diffSign = diff > 0 ? '+' : '';
+                    const diffWord = diff < 0 ? ` (${Math.abs(diff).toFixed(2)} ${unitStr} persi)` : diff > 0 ? ` (+${diff.toFixed(2)} ${unitStr} presi)` : '';
+                    extra = `\nDiff. vs Sett. Prec.: ${diffSign}${diff.toFixed(2)} ${unitStr}${diffWord}`;
+                  }
+                  if (medW !== null && medF !== null) {
+                    return `Pesate: ${wInfo.weights.length} gg\nMediana Peso: ${medW.toFixed(1)} ${unitStr}\nMediana Grasso: ${medF.toFixed(1)}%${extra}`;
+                  }
+                  return '';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } }
+            },
+            y: {
+              min: minFat,
+              max: maxFat,
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: {
+                color: '#c084fc',
+                callback: (v) => `${Number(v).toFixed(1)} ${unitStr}`
+              },
+              title: {
+                display: true,
+                text: `Massa Grassa (${unitStr})`,
+                color: '#c084fc',
+                font: { size: 11 }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderWeeklyMuscleChart() {
+      const canvas = document.getElementById('weeklyMuscleChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!RAW_DATA || RAW_DATA.length === 0) return;
+
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+      const unitStr = currentUnit;
+
+      const weeksMap = new Map();
+      RAW_DATA.forEach(entry => {
+        if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
+        const parts = entry.date.split('-');
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const dayOfWeek = (d.getDay() + 6) % 7;
+        const mon = new Date(d);
+        mon.setDate(d.getDate() - dayOfWeek);
+        const sun = new Date(mon);
+        sun.setDate(mon.getDate() + 6);
+        const key = mon.toISOString().slice(0, 10);
+        if (!weeksMap.has(key)) {
+          weeksMap.set(key, {
+            monday: mon,
+            sunday: sun,
+            weights: [],
+            muscles: []
+          });
+        }
+        weeksMap.get(key).weights.push(entry.weight_kg * mult);
+        if (entry.muscle_mass_kg !== null && entry.muscle_mass_kg !== undefined && !isNaN(entry.muscle_mass_kg)) {
+          weeksMap.get(key).muscles.push(entry.muscle_mass_kg * mult);
+        }
+      });
+
+      const sortedWeeks = Array.from(weeksMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      if (sortedWeeks.length === 0) return;
+
+      const monthsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+      const labels = [];
+      const totalMuscleLine = [];
+
+      sortedWeeks.forEach(([key, info], idx) => {
+        const isCurrentWeek = (idx === sortedWeeks.length - 1);
+        const monStr = `${info.monday.getDate()} ${monthsShort[info.monday.getMonth()]}`;
+        const sunStr = `${info.sunday.getDate()} ${monthsShort[info.sunday.getMonth()]}`;
+        const label = `${monStr} - ${sunStr}${isCurrentWeek ? ' (in corso)' : ''}`;
+        labels.push(label);
+
+        const medM = getMedian(info.muscles);
+        if (medM !== null) {
+          totalMuscleLine.push(parseFloat(medM.toFixed(2)));
+        } else {
+          totalMuscleLine.push(null);
+        }
+      });
+
+      const validMuscleVals = totalMuscleLine.filter(v => v !== null && !isNaN(v));
+      const minMuscle = validMuscleVals.length > 0 ? Math.floor(Math.min(...validMuscleVals) - 0.5) : undefined;
+      const maxMuscle = validMuscleVals.length > 0 ? Math.ceil(Math.max(...validMuscleVals) + 0.5) : undefined;
+
+      if (weeklyMuscleInstance) {
+        weeklyMuscleInstance.destroy();
+      }
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+      gradient.addColorStop(0, 'rgba(6, 182, 212, 0.35)');
+      gradient.addColorStop(1, 'rgba(6, 182, 212, 0.0)');
+
+      weeklyMuscleInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: `Massa Muscolare Stimata (${unitStr})`,
+              data: totalMuscleLine,
+              borderColor: '#22d3ee',
+              backgroundColor: gradient,
+              borderWidth: 2.5,
+              fill: true,
+              tension: 0.25,
+              pointBackgroundColor: '#06b6d4',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 1.5,
+              pointRadius: 4.5,
+              pointHoverRadius: 6.5
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              display: true,
+              labels: {
+                color: '#94a3b8',
+                boxWidth: 12,
+                font: { family: 'Inter', size: 12 }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              titleColor: '#f8fafc',
+              bodyColor: '#cbd5e1',
+              borderColor: '#334155',
+              borderWidth: 1,
+              padding: 12,
+              callbacks: {
+                label: function(context) {
+                  const val = context.parsed.y;
+                  if (val === null || val === undefined) return '';
+                  return `Massa Muscolare: ${val.toFixed(2)} ${unitStr}`;
+                },
+                afterBody: function(context) {
+                  const item = context[0];
+                  if (!item) return '';
+                  const idx = item.dataIndex;
+                  const wInfo = sortedWeeks[idx][1];
+                  const medM = getMedian(wInfo.muscles);
+                  const medW = getMedian(wInfo.weights);
+                  let extra = '';
+                  if (idx > 0 && totalMuscleLine[idx] !== null && totalMuscleLine[idx - 1] !== null) {
+                    const diff = totalMuscleLine[idx] - totalMuscleLine[idx - 1];
+                    const diffSign = diff > 0 ? '+' : '';
+                    const diffWord = diff > 0 ? ` (+${diff.toFixed(2)} ${unitStr} guadagnati)` : diff < 0 ? ` (${Math.abs(diff).toFixed(2)} ${unitStr} persi)` : '';
+                    extra = `\nDiff. vs Sett. Prec.: ${diffSign}${diff.toFixed(2)} ${unitStr}${diffWord}`;
+                  }
+                  if (medM !== null) {
+                    return `Pesate: ${wInfo.weights.length} gg\nMediana Peso: ${medW ? medW.toFixed(1) : '--'} ${unitStr}${extra}`;
+                  }
+                  return '';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } }
+            },
+            y: {
+              min: minMuscle,
+              max: maxMuscle,
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: {
+                color: '#22d3ee',
+                callback: (v) => `${Number(v).toFixed(1)} ${unitStr}`
+              },
+              title: {
+                display: true,
+                text: `Massa Muscolare (${unitStr})`,
+                color: '#22d3ee',
+                font: { size: 11 }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderCharts() {
+      try { renderMainChart(); } catch (e) { console.error("Error rendering main chart:", e); }
+      try { renderWeeklyBoxplot(); } catch (e) { console.error("Error rendering weekly boxplot:", e); }
+      try { renderCompositionChart(); } catch (e) { console.error("Error rendering composition chart:", e); }
+      try { renderWeeklyFatLossChart(); } catch (e) { console.error("Error rendering weekly fat loss chart:", e); }
+      try { renderWeeklyMuscleChart(); } catch (e) { console.error("Error rendering weekly muscle chart:", e); }
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('dataTableBody');
+      tbody.innerHTML = '';
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+      const reversed = [...RAW_DATA].reverse().slice(0, 30);
+
+      reversed.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-800/40 transition';
+        
+        const wVal = (row.weight_kg * mult).toFixed(2);
+        const diffVal = row.change_prev_kg !== null && row.change_prev_kg !== undefined 
+          ? (row.change_prev_kg * mult) 
+          : null;
+        const ma7Val = row.ma_7d ? (row.ma_7d * mult).toFixed(2) : '--';
+        const muscleVal = row.muscle_mass_kg ? `${(row.muscle_mass_kg * mult).toFixed(1)} ${currentUnit}` : '--';
+
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-medium text-white">${row.date}</td>
+          <td class="py-2.5 px-3 text-slate-400">${row.time || '--'}</td>
+          <td class="py-2.5 px-3 font-bold text-indigo-400">${wVal} ${currentUnit}</td>
+          <td class="py-2.5 px-3">${formatDelta(diffVal, currentUnit)}</td>
+          <td class="py-2.5 px-3 text-slate-300">${ma7Val} ${currentUnit}</td>
+          <td class="py-2.5 px-3 text-slate-300">${row.bmi ? row.bmi.toFixed(1) : '--'}</td>
+          <td class="py-2.5 px-3 text-purple-400 font-medium">${row.body_fat_pct ? row.body_fat_pct + '%' : '--'}</td>
+          <td class="py-2.5 px-3 text-slate-300">${muscleVal}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      if (window.Android && window.Android.onDashboardReady) {
+        window.Android.onDashboardReady();
+      }
+    });
+  </script>
+</body>
+</html>
