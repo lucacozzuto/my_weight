@@ -13,6 +13,8 @@ object GarminAuthManager {
     private const val KEY_CSRF_TOKEN = "csrf_token"
     private const val KEY_LAST_DATA = "cached_weight_data_json"
 
+    private const val KEY_DI_CLIENT_ID = "di_client_id"
+
     private fun getPrefs(context: Context) = try {
         val masterKey = MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -32,18 +34,22 @@ object GarminAuthManager {
         context: Context,
         diToken: String?,
         diRefreshToken: String?,
+        diClientId: String?,
         jwtWeb: String?,
         csrfToken: String?
     ) {
         val editor = getPrefs(context).edit()
         if (diToken != null) editor.putString(KEY_DI_TOKEN, diToken)
         if (diRefreshToken != null) editor.putString(KEY_DI_REFRESH_TOKEN, diRefreshToken)
+        if (diClientId != null) editor.putString(KEY_DI_CLIENT_ID, diClientId)
         if (jwtWeb != null) editor.putString(KEY_JWT_WEB, jwtWeb)
         if (csrfToken != null) editor.putString(KEY_CSRF_TOKEN, csrfToken)
         editor.apply()
     }
 
     fun getDiToken(context: Context): String? = getPrefs(context).getString(KEY_DI_TOKEN, null)
+    fun getDiRefreshToken(context: Context): String? = getPrefs(context).getString(KEY_DI_REFRESH_TOKEN, null)
+    fun getDiClientId(context: Context): String? = getPrefs(context).getString(KEY_DI_CLIENT_ID, null)
     fun getJwtWeb(context: Context): String? = getPrefs(context).getString(KEY_JWT_WEB, null)
     fun getCsrfToken(context: Context): String? = getPrefs(context).getString(KEY_CSRF_TOKEN, null)
 

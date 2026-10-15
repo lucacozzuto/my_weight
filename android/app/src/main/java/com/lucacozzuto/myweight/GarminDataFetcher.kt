@@ -60,7 +60,7 @@ object GarminDataFetcher {
                     val diToken = json.optString("access_token", null)
                     val diRefresh = json.optString("refresh_token", null)
                     if (!diToken.isNullOrBlank()) {
-                        GarminAuthManager.saveTokens(context, diToken, diRefresh, null, null)
+                        GarminAuthManager.saveTokens(context, diToken, diRefresh, clientId, null, null)
                         return@withContext true
                     }
                 }
@@ -71,33 +71,82 @@ object GarminDataFetcher {
         return@withContext false
     }
 
+    private fun refreshDiToken(context: Context): Boolean {
+        val refreshToken = GarminAuthManager.getDiRefreshToken(context)
+        val clientId = GarminAuthManager.getDiClientId(context) ?: DI_CLIENT_IDS.first()
+        if (refreshToken.isNullOrBlank()) return false
+
+        try {
+            val basicAuth = "Basic " + Base64.encodeToString("$clientId:".toByteArray(), Base64.NO_WRAP)
+            val body = FormBody.Builder()
+                .add("client_id", clientId)
+                .add("refresh_token", refreshToken)
+                .add("grant_type", "refresh_token")
+                .build()
+
+            val request = Request.Builder()
+                .url(DI_TOKEN_URL)
+                .header("Authorization", basicAuth)
+                .header("Accept", "application/json")
+                .header("User-Agent", "GCM-Android-5.0")
+                .post(body)
+                .build()
+
+            val resp = httpClient.newCall(request).execute()
+            if (resp.isSuccessful) {
+                val json = JSONObject(resp.body?.string() ?: "")
+                val newDiToken = json.optString("access_token", null)
+                val newRefresh = json.optString("refresh_token", refreshToken)
+                if (!newDiToken.isNullOrBlank()) {
+                    GarminAuthManager.saveTokens(context, newDiToken, newRefresh, clientId, null, null)
+                    return true
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return false
+    }
+
     suspend fun fetchWeightHistory(context: Context): String = withContext(Dispatchers.IO) {
-        val diToken = GarminAuthManager.getDiToken(context)
+        var diToken = GarminAuthManager.getDiToken(context)
         val jwtWeb = GarminAuthManager.getJwtWeb(context)
 
         val cal = Calendar.getInstance()
         val endStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(cal.time)
-        // Default start date: 1 year ago or Jan 1st of current year
+        // Default start date: 180 days ago
         cal.add(Calendar.DAY_OF_YEAR, -180)
         val startStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(cal.time)
 
         val url = "https://connectapi.garmin.com/weight-service/weight/dateRange?startDate=$startStr&endDate=$endStr"
 
-        val reqBuilder = Request.Builder().url(url)
-        if (!diToken.isNullOrBlank()) {
-            reqBuilder.header("Authorization", "Bearer $diToken")
-            reqBuilder.header("Accept", "application/json")
-            reqBuilder.header("User-Agent", "GCM-Android-5.0")
-        } else if (!jwtWeb.isNullOrBlank()) {
-            reqBuilder.header("Cookie", "JWT_WEB=$jwtWeb")
-            reqBuilder.header("Accept", "application/json")
-            reqBuilder.header("DI-Backend", "connectapi.garmin.com")
-            reqBuilder.header("User-Agent", "Mozilla/5.0")
-        } else {
-            throw IllegalStateException("Nessun token di autenticazione Garmin disponibile")
+        fun executeRequest(token: String?): okhttp3.Response {
+            val reqBuilder = Request.Builder().url(url)
+            if (!token.isNullOrBlank()) {
+                reqBuilder.header("Authorization", "Bearer $token")
+                reqBuilder.header("Accept", "application/json")
+                reqBuilder.header("User-Agent", "GCM-Android-5.0")
+            } else if (!jwtWeb.isNullOrBlank()) {
+                reqBuilder.header("Cookie", "JWT_WEB=$jwtWeb")
+                reqBuilder.header("Accept", "application/json")
+                reqBuilder.header("DI-Backend", "connectapi.garmin.com")
+                reqBuilder.header("User-Agent", "Mozilla/5.0")
+            } else {
+                throw IllegalStateException("Nessun token di autenticazione Garmin disponibile")
+            }
+            return httpClient.newCall(reqBuilder.build()).execute()
         }
 
-        val resp = httpClient.newCall(reqBuilder.build()).execute()
+        var resp = executeRequest(diToken)
+
+        // Silent automatic token refresh if token expired (401/403)
+        if (resp.code == 401 || resp.code == 403) {
+            if (refreshDiToken(context)) {
+                diToken = GarminAuthManager.getDiToken(context)
+                resp = executeRequest(diToken)
+            }
+        }
+
         if (resp.code == 401 || resp.code == 403) {
             GarminAuthManager.clear(context)
             throw IllegalStateException("Sessione Garmin scaduta. Effettua nuovamente l'accesso.")
