@@ -431,7 +431,10 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Garmin Weight & Health Analytics</title>
   
-  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/lucacozzuto/my_weight/main/docs/icon.png" />
+  <link rel="apple-touch-icon" href="icon.png" />
+  <link rel="icon" type="image/png" href="icon-192.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#020617" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 

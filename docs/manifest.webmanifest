@@ -1,0 +1,24 @@
+{
+  "name": "My Weight - Garmin Health Analytics",
+  "short_name": "My Weight",
+  "description": "Dashboard personale di monitoraggio peso e composizione corporea da Garmin Connect",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

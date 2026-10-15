@@ -1,0 +1,10 @@
+<resources>
+    <!-- Base dark application theme -->
+    <style name="Theme.MyWeight" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Status bar and Navigation bar color matching dark surface-950 (#020617) -->
+        <item name="android:statusBarColor">#020617</item>
+        <item name="android:navigationBarColor">#020617</item>
+        <item name="android:windowBackground">#020617</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

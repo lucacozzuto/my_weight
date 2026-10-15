@@ -1,0 +1,76 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+    paths:
+      - 'android/**'
+      - '.github/workflows/build_apk.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make Gradlew Executable
+        run: chmod +x android/gradlew
+
+      - name: Build Android APK (Release & Debug)
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Prepare APK Output
+        run: |
+          mkdir -p dist_apk
+          # Locate the built APK
+          find android/app/build/outputs/apk -name "*.apk" -exec cp {} dist_apk/MyWeight.apk \;
+          ls -lh dist_apk/
+
+      - name: Upload APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyWeight-Android-APK
+          path: dist_apk/MyWeight.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create or Update GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-latest
+          name: "My Weight Android App"
+          body: |
+            ### 📱 Download My Weight per Android
+            
+            Scarica il file `MyWeight.apk` direttamente sul tuo smartphone Android e aprilo per installarlo.
+            
+            - **Versione**: 1.0.0
+            - **URL Live**: https://lucacozzuto.github.io/my_weight/
+            - **Funzionalità**: Dati sincronizzati automaticamente da Garmin ogni mattina, tema dark a schermo intero, pull-to-refresh e salvataggio password di decifratura.
+            
+            *(Se richiesto da Android, consenti temporaneamente l'installazione di app da origini sconosciute/dal tuo browser).*
+          files: dist_apk/MyWeight.apk
+          generate_release_notes: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
