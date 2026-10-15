@@ -38,18 +38,32 @@ jobs:
           cd android
           ./gradlew assembleRelease --no-daemon --stacktrace
 
+      - name: Extract Version
+        id: get_version
+        run: |
+          VERSION=$(grep -oE 'versionName\s*=\s*"[^"]+"' android/app/build.gradle.kts | cut -d'"' -f2)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Detected version: $VERSION"
+
       - name: Prepare APK Output
         run: |
           mkdir -p dist_apk
-          # Locate the built APK
-          find android/app/build/outputs/apk -name "*.apk" -exec cp {} dist_apk/MyWeight.apk \;
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          # Find the built release APK
+          APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
+          fi
+          echo "Using APK: $APK_PATH"
+          cp "$APK_PATH" "dist_apk/MyWeight_v${VERSION}.apk"
+          cp "$APK_PATH" "dist_apk/MyWeight.apk"
           ls -lh dist_apk/
 
       - name: Upload APK as Workflow Artifact
         uses: actions/upload-artifact@v4
         with:
           name: MyWeight-Android-APK
-          path: dist_apk/MyWeight.apk
+          path: dist_apk/*.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -57,18 +71,22 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-latest
-          name: "My Weight Android App"
+          name: "My Weight Android App (v${{ steps.get_version.outputs.VERSION }})"
           body: |
-            ### 📱 Download My Weight per Android
+            ### 📱 Download My Weight per Android (v${{ steps.get_version.outputs.VERSION }})
             
-            Scarica il file `MyWeight.apk` direttamente sul tuo smartphone Android e aprilo per installarlo.
+            Scarica il file `MyWeight_v${{ steps.get_version.outputs.VERSION }}.apk` direttamente sul tuo smartphone Android e aprilo per installarlo.
             
-            - **Versione**: 1.0.0
+            - **Versione**: ${{ steps.get_version.outputs.VERSION }}
             - **URL Live**: https://lucacozzuto.github.io/my_weight/
-            - **Funzionalità**: Dati sincronizzati automaticamente da Garmin ogni mattina, tema dark a schermo intero, pull-to-refresh e salvataggio password di decifratura.
+            - **Filtro Inizio Dieta**: Esclusione automatica delle pesate precedenti per mediane, statistiche e boxplot.
+            - **Grafico Interattivo**: Tocca ovunque sul grafico per togliere il tooltip dei dati e tornare alla vista linee.
+            - **Aggiornamento Permanente**: Firmato con keystore di release permanente per consentire gli aggiornamenti in-place senza conflitti.
             
             *(Se richiesto da Android, consenti temporaneamente l'installazione di app da origini sconosciute/dal tuo browser).*
-          files: dist_apk/MyWeight.apk
+          files: |
+            dist_apk/MyWeight_v${{ steps.get_version.outputs.VERSION }}.apk
+            dist_apk/MyWeight.apk
           generate_release_notes: false
           prerelease: false
         env:
