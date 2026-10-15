@@ -264,8 +264,37 @@
           </div>
         </div>
 
+        <!-- Prominent Diet Filter Bar -->
+        <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-indigo-950/40 p-3.5 rounded-xl border border-indigo-500/30 text-xs">
+          <div class="flex items-center space-x-2">
+            <span class="p-1.5 bg-indigo-500/20 text-indigo-400 rounded-lg">
+              <i data-lucide="calendar" class="w-4 h-4"></i>
+            </span>
+            <div>
+              <span class="text-white font-bold block text-xs sm:text-sm">Inizio Dieta / Analisi</span>
+              <span class="text-[11px] text-slate-400 block">Escludi pesate precedenti dal calcolo mediane & grafici</span>
+            </div>
+          </div>
+          
+          <div class="flex items-center space-x-2 flex-wrap gap-y-2">
+            <input 
+              type="date" 
+              id="dietStartDateInput" 
+              onchange="setDietStartDate(this.value)" 
+              class="bg-slate-900 border border-indigo-400/50 focus:border-indigo-400 rounded-lg px-3 py-1.5 text-white font-semibold text-xs outline-none shadow-inner"
+              style="color-scheme: dark;"
+            />
+            <button 
+              onclick="resetDietStartDate()" 
+              id="btnDietReset"
+              title="Mostra tutti i dati storici" 
+              class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 font-medium text-xs transition"
+            >Mostra Tutto</button>
+          </div>
+        </div>
+
         <!-- Goal & Forecast Control Bar -->
-        <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs">
+        <div class="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs">
           <div class="flex items-center space-x-2.5 flex-wrap gap-y-1.5">
             <span class="text-amber-400 font-semibold flex items-center space-x-1.5">
               <i data-lucide="target" class="w-4 h-4"></i>
@@ -284,24 +313,6 @@
             </div>
             <span class="text-slate-600 hidden sm:inline">&bull;</span>
             <span class="text-slate-300" id="targetDistWrapper">Distanza: <strong id="targetDistVal" class="text-amber-300 font-bold">--</strong></span>
-            <span class="text-slate-600 hidden sm:inline">&bull;</span>
-            <div class="flex items-center space-x-1.5">
-              <span class="text-indigo-400 font-semibold flex items-center space-x-1">
-                <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
-                <span>Inizio Dieta:</span>
-              </span>
-              <input 
-                type="date" 
-                id="dietStartDateInput" 
-                onchange="setDietStartDate(this.value)" 
-                class="bg-slate-800 border border-slate-700 focus:border-indigo-500 rounded px-2 py-0.5 text-indigo-300 font-semibold text-xs outline-none transition" 
-              />
-              <button 
-                onclick="resetDietStartDate()" 
-                title="Reimposta a inizio storico" 
-                class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 text-[10px] transition"
-              >Tutto</button>
-            </div>
           </div>
 
           <div class="flex items-center space-x-2">
@@ -316,6 +327,15 @@
         </div>
 
         <div class="mt-4 sm:mt-6 relative h-[320px] sm:h-[380px] w-full">
+          <!-- Floating dismiss tooltip chip -->
+          <button 
+            id="btnDismissTooltip" 
+            onclick="dismissChartTooltip()" 
+            class="hidden absolute top-2 right-2 z-20 flex items-center space-x-1 px-2.5 py-1 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-700 text-xs font-medium shadow-lg backdrop-blur-md transition"
+          >
+            <i data-lucide="x" class="w-3.5 h-3.5 text-rose-400"></i>
+            <span>Chiudi dettaglio</span>
+          </button>
           <canvas id="weightChart"></canvas>
         </div>
       </div>
@@ -555,6 +575,15 @@
       updateStats();
       renderCharts();
       renderTable();
+    }
+
+    function dismissChartTooltip() {
+      if (weightChartInstance && weightChartInstance.tooltip) {
+        weightChartInstance.tooltip.setActiveElements([], { x: 0, y: 0 });
+        weightChartInstance.update();
+      }
+      const btn = document.getElementById('btnDismissTooltip');
+      if (btn) btn.classList.add('hidden');
     }
 
     function resetDietStartDate() {
@@ -1204,6 +1233,8 @@
               if (active.length > 0) {
                 chart.tooltip.setActiveElements([], { x: 0, y: 0 });
                 chart.update();
+                const btn = document.getElementById('btnDismissTooltip');
+                if (btn) btn.classList.add('hidden');
               }
             }
           },
@@ -1224,6 +1255,16 @@
               borderColor: '#334155',
               borderWidth: 1,
               padding: 12,
+              external: function(context) {
+                const btn = document.getElementById('btnDismissTooltip');
+                if (!btn) return;
+                const tooltipModel = context.tooltip;
+                if (tooltipModel.opacity === 0) {
+                  btn.classList.add('hidden');
+                } else {
+                  btn.classList.remove('hidden');
+                }
+              },
               callbacks: {
                 label: function(context) {
                   const val = context.parsed.y;
