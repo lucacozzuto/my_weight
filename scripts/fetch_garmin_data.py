@@ -785,6 +785,15 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
           </div>
         </div>
         <div class="mt-4 sm:mt-6 relative h-[320px] sm:h-[360px] w-full">
+          <!-- Floating dismiss tooltip chip -->
+          <button 
+            id="btnDismissTooltipBoxplot" 
+            onclick="dismissChartTooltip('weeklyBoxplot')" 
+            class="hidden absolute top-2 right-2 z-20 flex items-center space-x-1 px-2.5 py-1 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-700 text-xs font-medium shadow-lg backdrop-blur-md transition"
+          >
+            <i data-lucide="x" class="w-3.5 h-3.5 text-rose-400"></i>
+            <span>Chiudi dettaglio</span>
+          </button>
           <canvas id="weeklyBoxplotChart"></canvas>
         </div>
       </div>
@@ -801,6 +810,15 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
           </div>
         </div>
         <div class="mt-4 relative h-[240px] sm:h-[260px] w-full">
+          <!-- Floating dismiss tooltip chip -->
+          <button 
+            id="btnDismissTooltipComp" 
+            onclick="dismissChartTooltip('composition')" 
+            class="hidden absolute top-2 right-2 z-20 flex items-center space-x-1 px-2.5 py-1 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-700 text-xs font-medium shadow-lg backdrop-blur-md transition"
+          >
+            <i data-lucide="x" class="w-3.5 h-3.5 text-rose-400"></i>
+            <span>Chiudi dettaglio</span>
+          </button>
           <canvas id="compositionChart"></canvas>
         </div>
       </div>
@@ -809,15 +827,15 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm">
         <div class="flex items-center justify-between pb-3 border-b border-slate-800">
           <div>
-            <h3 class="font-bold text-white text-sm sm:text-base">Storico Pesate Recenti</h3>
-            <p class="text-xs text-slate-400">Sincronizzate da Garmin Connect</p>
+            <h3 class="font-bold text-white text-sm sm:text-base">Storico Pesate</h3>
+            <p class="text-xs text-slate-400">Dati a partire da inizio dieta / analisi (scorri per visualizzare tutto lo storico)</p>
           </div>
-          <span class="text-xs text-slate-400" id="tableCount"></span>
+          <span class="text-xs px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-semibold" id="tableCount"></span>
         </div>
 
-        <div class="overflow-x-auto mt-4">
+        <div class="overflow-x-auto overflow-y-auto max-h-[380px] sm:max-h-[440px] mt-4 rounded-xl border border-slate-800/80">
           <table class="w-full text-left text-xs sm:text-sm text-slate-300 whitespace-nowrap">
-            <thead class="text-[11px] uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
+            <thead class="text-[11px] uppercase bg-slate-900/95 text-slate-400 border-b border-slate-800 sticky top-0 z-10 backdrop-blur-md">
               <tr>
                 <th class="py-2.5 px-3 font-semibold">Data</th>
                 <th class="py-2.5 px-3 font-semibold">Ora</th>
@@ -829,7 +847,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
                 <th class="py-2.5 px-3 font-semibold">Muscolo</th>
               </tr>
             </thead>
-            <tbody id="dataTableBody" class="divide-y divide-slate-800/60">
+            <tbody id="dataTableBody" class="divide-y divide-slate-800/60 bg-slate-950/20">
             </tbody>
           </table>
         </div>
@@ -936,6 +954,15 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
               </span>
             </div>
             <div class="mt-4 sm:mt-6 relative h-[260px] sm:h-[290px] w-full">
+              <!-- Floating dismiss tooltip chip -->
+              <button 
+                id="btnDismissTooltipFat" 
+                onclick="dismissChartTooltip('weeklyFatLoss')" 
+                class="hidden absolute top-2 right-2 z-20 flex items-center space-x-1 px-2.5 py-1 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-700 text-xs font-medium shadow-lg backdrop-blur-md transition"
+              >
+                <i data-lucide="x" class="w-3.5 h-3.5 text-rose-400"></i>
+                <span>Chiudi dettaglio</span>
+              </button>
               <canvas id="weeklyFatLossChart"></canvas>
             </div>
           </div>
@@ -954,6 +981,15 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
               </span>
             </div>
             <div class="mt-4 sm:mt-6 relative h-[260px] sm:h-[290px] w-full">
+              <!-- Floating dismiss tooltip chip -->
+              <button 
+                id="btnDismissTooltipMuscle" 
+                onclick="dismissChartTooltip('weeklyMuscle')" 
+                class="hidden absolute top-2 right-2 z-20 flex items-center space-x-1 px-2.5 py-1 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-700 text-xs font-medium shadow-lg backdrop-blur-md transition"
+              >
+                <i data-lucide="x" class="w-3.5 h-3.5 text-rose-400"></i>
+                <span>Chiudi dettaglio</span>
+              </button>
               <canvas id="weeklyMuscleChart"></canvas>
             </div>
           </div>
@@ -1003,13 +1039,30 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       renderTable();
     }}
 
-    function dismissChartTooltip() {{
-      if (weightChartInstance && weightChartInstance.tooltip) {{
-        weightChartInstance.tooltip.setActiveElements([], {{ x: 0, y: 0 }});
-        weightChartInstance.update();
+    function dismissChartTooltip(chartType) {{
+      const chartMap = {{
+        'weight': {{ inst: weightChartInstance, btnId: 'btnDismissTooltip' }},
+        'weeklyBoxplot': {{ inst: weeklyBoxplotInstance, btnId: 'btnDismissTooltipBoxplot' }},
+        'composition': {{ inst: compChartInstance, btnId: 'btnDismissTooltipComp' }},
+        'weeklyFatLoss': {{ inst: weeklyFatLossInstance, btnId: 'btnDismissTooltipFat' }},
+        'weeklyMuscle': {{ inst: weeklyMuscleInstance, btnId: 'btnDismissTooltipMuscle' }}
+      }};
+
+      if (!chartType) {{
+        // Dismiss all if none specified
+        Object.keys(chartMap).forEach(k => dismissChartTooltip(k));
+        return;
       }}
-      const btn = document.getElementById('btnDismissTooltip');
-      if (btn) btn.classList.add('hidden');
+
+      const item = chartMap[chartType];
+      if (item) {{
+        if (item.inst && item.inst.tooltip) {{
+          item.inst.tooltip.setActiveElements([], {{ x: 0, y: 0 }});
+          item.inst.update();
+        }}
+        const btn = document.getElementById(item.btnId);
+        if (btn) btn.classList.add('hidden');
+      }}
     }}
 
     function resetDietStartDate() {{
@@ -1765,8 +1818,41 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         options: {{
           responsive: true,
           maintainAspectRatio: false,
+          interaction: {{
+            mode: 'index',
+            intersect: false,
+          }},
+          onClick: (evt, activeElements, chart) => {{
+            if (chart && chart.tooltip) {{
+              const active = chart.tooltip.getActiveElements() || [];
+              if (active.length > 0) {{
+                chart.tooltip.setActiveElements([], {{ x: 0, y: 0 }});
+                chart.update();
+                const btn = document.getElementById('btnDismissTooltipComp');
+                if (btn) btn.classList.add('hidden');
+              }}
+            }}
+          }},
           plugins: {{
-            legend: {{ labels: {{ color: '#94a3b8', boxWidth: 12, usePointStyle: true }} }}
+            legend: {{ labels: {{ color: '#94a3b8', boxWidth: 12, usePointStyle: true }} }},
+            tooltip: {{
+              backgroundColor: '#0f172a',
+              titleColor: '#f8fafc',
+              bodyColor: '#cbd5e1',
+              borderColor: '#334155',
+              borderWidth: 1,
+              padding: 12,
+              external: function(context) {{
+                const btn = document.getElementById('btnDismissTooltipComp');
+                if (!btn) return;
+                const tooltipModel = context.tooltip;
+                if (tooltipModel.opacity === 0) {{
+                  btn.classList.add('hidden');
+                }} else {{
+                  btn.classList.remove('hidden');
+                }}
+              }}
+            }}
           }},
           scales: {{
             x: {{ grid: {{ color: 'rgba(255, 255, 255, 0.05)' }}, ticks: {{ color: '#64748b', maxTicksLimit: 6 }} }},
@@ -1891,6 +1977,17 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         options: {{
           responsive: true,
           maintainAspectRatio: false,
+          onClick: (evt, activeElements, chart) => {{
+            if (chart && chart.tooltip) {{
+              const active = chart.tooltip.getActiveElements() || [];
+              if (active.length > 0) {{
+                chart.tooltip.setActiveElements([], {{ x: 0, y: 0 }});
+                chart.update();
+                const btn = document.getElementById('btnDismissTooltipBoxplot');
+                if (btn) btn.classList.add('hidden');
+              }}
+            }}
+          }},
           plugins: {{
             legend: {{
               display: true,
@@ -1907,6 +2004,16 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
               borderColor: '#334155',
               borderWidth: 1,
               padding: 12,
+              external: function(context) {{
+                const btn = document.getElementById('btnDismissTooltipBoxplot');
+                if (!btn) return;
+                const tooltipModel = context.tooltip;
+                if (tooltipModel.opacity === 0) {{
+                  btn.classList.add('hidden');
+                }} else {{
+                  btn.classList.remove('hidden');
+                }}
+              }},
               callbacks: {{
                 afterBody: function(context) {{
                   const item = context[0];
@@ -2047,6 +2154,17 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
             mode: 'index',
             intersect: false
           }},
+          onClick: (evt, activeElements, chart) => {{
+            if (chart && chart.tooltip) {{
+              const active = chart.tooltip.getActiveElements() || [];
+              if (active.length > 0) {{
+                chart.tooltip.setActiveElements([], {{ x: 0, y: 0 }});
+                chart.update();
+                const btn = document.getElementById('btnDismissTooltipFat');
+                if (btn) btn.classList.add('hidden');
+              }}
+            }}
+          }},
           plugins: {{
             legend: {{
               display: true,
@@ -2063,6 +2181,16 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
               borderColor: '#334155',
               borderWidth: 1,
               padding: 12,
+              external: function(context) {{
+                const btn = document.getElementById('btnDismissTooltipFat');
+                if (!btn) return;
+                const tooltipModel = context.tooltip;
+                if (tooltipModel.opacity === 0) {{
+                  btn.classList.add('hidden');
+                }} else {{
+                  btn.classList.remove('hidden');
+                }}
+              }},
               callbacks: {{
                 label: function(context) {{
                   const val = context.parsed.y;
@@ -2213,6 +2341,17 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
             mode: 'index',
             intersect: false
           }},
+          onClick: (evt, activeElements, chart) => {{
+            if (chart && chart.tooltip) {{
+              const active = chart.tooltip.getActiveElements() || [];
+              if (active.length > 0) {{
+                chart.tooltip.setActiveElements([], {{ x: 0, y: 0 }});
+                chart.update();
+                const btn = document.getElementById('btnDismissTooltipMuscle');
+                if (btn) btn.classList.add('hidden');
+              }}
+            }}
+          }},
           plugins: {{
             legend: {{
               display: true,
@@ -2229,6 +2368,16 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
               borderColor: '#334155',
               borderWidth: 1,
               padding: 12,
+              external: function(context) {{
+                const btn = document.getElementById('btnDismissTooltipMuscle');
+                if (!btn) return;
+                const tooltipModel = context.tooltip;
+                if (tooltipModel.opacity === 0) {{
+                  btn.classList.add('hidden');
+                }} else {{
+                  btn.classList.remove('hidden');
+                }}
+              }},
               callbacks: {{
                 label: function(context) {{
                   const val = context.parsed.y;
@@ -2295,7 +2444,11 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       tbody.innerHTML = '';
       const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
       const activeData = getActiveData();
-      const reversed = [...activeData].reverse().slice(0, 30);
+      const countEl = document.getElementById('tableCount');
+      if (countEl) {{
+        countEl.textContent = `${{activeData.length}} pesate`;
+      }}
+      const reversed = [...activeData].reverse();
 
       reversed.forEach(row => {{
         const tr = document.createElement('tr');
