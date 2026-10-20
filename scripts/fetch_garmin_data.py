@@ -467,6 +467,8 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
   
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@sgratzl/chartjs-chart-boxplot@4.4.4/build/index.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
 
   <style>
@@ -780,6 +782,15 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
             <i data-lucide="x" class="w-3.5 h-3.5 text-rose-400"></i>
             <span data-i18n="dismissTooltip">Chiudi dettaglio</span>
           </button>
+          <!-- Reset Zoom button -->
+          <button 
+            id="btnResetZoom" 
+            onclick="resetWeightChartZoom()" 
+            class="hidden absolute top-2 left-2 z-20 flex items-center space-x-1 px-2.5 py-1 bg-indigo-600/90 hover:bg-indigo-500 text-white rounded-lg border border-indigo-400/40 text-xs font-medium shadow-lg backdrop-blur-md transition"
+          >
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            <span data-i18n="resetZoom">Reset Zoom</span>
+          </button>
           <canvas id="weightChart"></canvas>
         </div>
       </div>
@@ -848,7 +859,44 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
             <h3 class="font-bold text-white text-sm sm:text-base" data-i18n="tableHeaderTitle">Storico Pesate</h3>
             <p class="text-xs text-slate-400" data-i18n="tableHeaderSub">Dati a partire da inizio dieta / analisi (scorri per visualizzare tutto lo storico)</p>
           </div>
-          <span class="text-xs px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-semibold" id="tableCount"></span>
+          <div class="flex items-center space-x-2">
+            <span class="text-xs px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-semibold" id="tableCount"></span>
+            
+            <!-- Download Dropdown -->
+            <div class="relative inline-block text-left">
+              <button 
+                id="btnDownloadToggle"
+                onclick="toggleDownloadMenu()" 
+                class="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-indigo-600/80 hover:bg-indigo-600 text-white font-medium text-xs transition border border-indigo-400/30 shadow-sm"
+                data-i18n-title="downloadDataTitle"
+                title="Scarica dati pesate"
+              >
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span data-i18n="downloadData">Scarica Dati</span>
+                <i data-lucide="chevron-down" class="w-3 h-3 text-indigo-200"></i>
+              </button>
+              
+              <div 
+                id="downloadMenuDropdown" 
+                class="hidden absolute right-0 mt-1.5 w-36 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl py-1 z-30 backdrop-blur-md"
+              >
+                <button 
+                  onclick="downloadData('csv')" 
+                  class="w-full text-left px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 hover:text-white flex items-center space-x-2 transition"
+                >
+                  <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-400"></i>
+                  <span>CSV</span>
+                </button>
+                <button 
+                  onclick="downloadData('json')" 
+                  class="w-full text-left px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 hover:text-white flex items-center space-x-2 transition"
+                >
+                  <i data-lucide="file-code" class="w-3.5 h-3.5 text-cyan-400"></i>
+                  <span>JSON</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="overflow-x-auto overflow-y-auto max-h-[380px] sm:max-h-[440px] mt-4 rounded-xl border border-slate-800/80">
@@ -1142,7 +1190,11 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         chartMedianWeight: "Mediana Peso:",
         chartMedianFat: "Mediana Grasso:",
         monthsShort: ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'],
-        daysShort: ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab']
+        daysShort: ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'],
+        downloadData: "Scarica Dati",
+        downloadDataTitle: "Scarica serie delle pesate",
+        resetZoom: "Reset Zoom",
+        downloadComplete: "Download completato" 
       }},
       en: {{
         protectedArea: "Protected Area",
@@ -1255,7 +1307,11 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         chartMedianWeight: "Median Weight:",
         chartMedianFat: "Median Fat:",
         monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-        daysShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+        daysShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        downloadData: "Download Data",
+        downloadDataTitle: "Download weigh-in series",
+        resetZoom: "Reset Zoom",
+        downloadComplete: "Download complete" 
       }},
       es: {{
         protectedArea: "Área Protegida",
@@ -1368,7 +1424,11 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         chartMedianWeight: "Mediana Peso:",
         chartMedianFat: "Mediana Grasa:",
         monthsShort: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-        daysShort: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+        daysShort: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+        downloadData: "Descargar Datos",
+        downloadDataTitle: "Descargar serie de pesajes",
+        resetZoom: "Restablecer Zoom",
+        downloadComplete: "Descarga completada" 
       }}
     }};
 
@@ -1909,6 +1969,88 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       try {{ calculateFatLossStats(); }} catch(e) {{ console.error("Error in calculateFatLossStats:", e); }}
     }}
 
+
+    function toggleDownloadMenu() {{
+      const menu = document.getElementById('downloadMenuDropdown');
+      if (menu) menu.classList.toggle('hidden');
+    }}
+
+    // Close download menu when clicking outside
+    document.addEventListener('click', (e) => {{
+      const btn = document.getElementById('btnDownloadToggle');
+      const menu = document.getElementById('downloadMenuDropdown');
+      if (menu && !menu.classList.contains('hidden')) {{
+        if (btn && !btn.contains(e.target) && !menu.contains(e.target)) {{
+          menu.classList.add('hidden');
+        }}
+      }}
+    }});
+
+    function resetWeightChartZoom() {{
+      if (weightChartInstance && typeof weightChartInstance.resetZoom === 'function') {{
+        weightChartInstance.resetZoom();
+      }}
+      const btn = document.getElementById('btnResetZoom');
+      if (btn) btn.classList.add('hidden');
+    }}
+
+    function downloadData(format) {{
+      const menu = document.getElementById('downloadMenuDropdown');
+      if (menu) menu.classList.add('hidden');
+
+      const dataToExport = getActiveData();
+      if (!dataToExport || dataToExport.length === 0) {{
+        alert(t('partialData') || 'No data');
+        return;
+      }}
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      let filename = `my_weight_${{dateStr}}.${{format}}`;
+      let contentStr = '';
+      let mimeType = '';
+
+      if (format === 'json') {{
+        mimeType = 'application/json';
+        contentStr = JSON.stringify(dataToExport, null, 2);
+      }} else {{
+        mimeType = 'text/csv;charset=utf-8;';
+        const headers = [
+          'date', 'time', 'timestamp', 'weight_kg', 'weight_lbs',
+          'ma_7d', 'ma_30d', 'change_prev_kg', 'change_from_start_kg',
+          'bmi', 'body_fat_pct', 'body_water_pct', 'muscle_mass_kg',
+          'bone_mass_kg', 'visceral_fat', 'metabolic_age', 'physique_rating', 'source'
+        ];
+        const rows = [headers.join(',')];
+        dataToExport.forEach(d => {{
+          const row = headers.map(h => {{
+            const v = d[h];
+            if (v === null || v === undefined) return '';
+            const s = String(v);
+            return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${{s.replace(/"/g, '""')}}"` : s;
+          }});
+          rows.push(row.join(','));
+        }});
+        contentStr = rows.join('\n');
+      }}
+
+      // Check Android native download bridge
+      if (window.Android && typeof window.Android.downloadFile === 'function') {{
+        window.Android.downloadFile(filename, mimeType, contentStr);
+        return;
+      }}
+
+      // Standard browser download
+      const blob = new Blob([contentStr], {{ type: mimeType }});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }}
+
     function renderMainChart() {{
       const ctx = document.getElementById('weightChart').getContext('2d');
       const filtered = getFilteredData();
@@ -2129,6 +2271,27 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
             }}
           }},
           plugins: {{
+            zoom: {{
+              pan: {{
+                enabled: true,
+                mode: 'x',
+                modifierKey: null
+              }},
+              zoom: {{
+                wheel: {{
+                  enabled: true,
+                  speed: 0.05
+                }},
+                pinch: {{
+                  enabled: true
+                }},
+                mode: 'x',
+                onZoom: function({{ chart }}) {{
+                  const btn = document.getElementById('btnResetZoom');
+                  if (btn) btn.classList.remove('hidden');
+                }}
+              }}
+            }},
             legend: {{
               position: 'top',
               labels: {{
@@ -2438,10 +2601,14 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
                   const rangeVal = (Math.max(...rawArr) - Math.min(...rawArr)).toFixed(2);
                   const medVal = getMedian(rawArr).toFixed(2);
 
-                  return `\n${{t('chartWeighInsCount')}} ${{count}} ${{t('weighInsDays')}}` +
-                         `\n${{t('chartMedian')}} ${{medVal}} ${{currentUnit}} (${{t('chartAverage')}} ${{avg}} ${{currentUnit}})` +
-                         `\n${{t('chartOscillationRange')}} ${{rangeVal}} ${{currentUnit}}` +
-                         `\n(Min: ${{minVal}} - Max: ${{maxVal}} ${{currentUnit}})`;
+                  return `
+${{t('chartWeighInsCount')}} ${{count}} ${{t('weighInsDays')}}` +
+                         `
+${{t('chartMedian')}} ${{medVal}} ${{currentUnit}} (${{t('chartAverage')}} ${{avg}} ${{currentUnit}})` +
+                         `
+${{t('chartOscillationRange')}} ${{rangeVal}} ${{currentUnit}}` +
+                         `
+(Min: ${{minVal}} - Max: ${{maxVal}} ${{currentUnit}})`;
                 }}
               }}
             }}
@@ -2620,10 +2787,13 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
                     const diff = totalFatMassLine[idx] - totalFatMassLine[idx - 1];
                     const diffSign = diff > 0 ? '+' : '';
                     const diffWord = diff < 0 ? ` (${{Math.abs(diff).toFixed(2)}} ${{unitStr}} ${{t('lostWord')}})` : diff > 0 ? ` (+${{diff.toFixed(2)}} ${{unitStr}} ${{t('takenWord')}})` : '';
-                    extra = `\n${{t('diffVsPrevWeek')}} ${{diffSign}}${{diff.toFixed(2)}} ${{unitStr}}${{diffWord}}`;
+                    extra = `
+${{t('diffVsPrevWeek')}} ${{diffSign}}${{diff.toFixed(2)}} ${{unitStr}}${{diffWord}}`;
                   }}
                   if (medW !== null && medF !== null) {{
-                    return `${{t('chartWeighIns')}} ${{wInfo.weights.length}} ${{t('weighInsDays')}}\n${{t('chartMedianWeight')}} ${{medW.toFixed(1)}} ${{unitStr}}\n${{t('chartMedianFat')}} ${{medF.toFixed(1)}}%${{extra}}`;
+                    return `${{t('chartWeighIns')}} ${{wInfo.weights.length}} ${{t('weighInsDays')}}
+${{t('chartMedianWeight')}} ${{medW.toFixed(1)}} ${{unitStr}}
+${{t('chartMedianFat')}} ${{medF.toFixed(1)}}%${{extra}}`;
                   }}
                   return '';
                 }}
@@ -2807,10 +2977,12 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
                     const diff = totalMuscleLine[idx] - totalMuscleLine[idx - 1];
                     const diffSign = diff > 0 ? '+' : '';
                     const diffWord = diff > 0 ? ` (+${{diff.toFixed(2)}} ${{unitStr}} ${{t('gainedWord')}})` : diff < 0 ? ` (${{Math.abs(diff).toFixed(2)}} ${{unitStr}} ${{t('lostWord')}})` : '';
-                    extra = `\n${{t('diffVsPrevWeek')}} ${{diffSign}}${{diff.toFixed(2)}} ${{unitStr}}${{diffWord}}`;
+                    extra = `
+${{t('diffVsPrevWeek')}} ${{diffSign}}${{diff.toFixed(2)}} ${{unitStr}}${{diffWord}}`;
                   }}
                   if (medM !== null) {{
-                    return `${{t('chartWeighIns')}} ${{wInfo.weights.length}} ${{t('weighInsDays')}}\n${{t('chartMedianWeight')}} ${{medW ? medW.toFixed(1) : '--'}} ${{unitStr}}${{extra}}`;
+                    return `${{t('chartWeighIns')}} ${{wInfo.weights.length}} ${{t('weighInsDays')}}
+${{t('chartMedianWeight')}} ${{medW ? medW.toFixed(1) : '--'}} ${{unitStr}}${{extra}}`;
                   }}
                   return '';
                 }}

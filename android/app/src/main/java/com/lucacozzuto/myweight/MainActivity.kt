@@ -20,8 +20,16 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import android.content.ContentValues
+import android.content.Intent
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
+import java.io.File
+import java.io.FileOutputStream
 import androidx.lifecycle.lifecycleScope
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import kotlinx.coroutines.launch
@@ -383,5 +391,45 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this@MainActivity, "Account Garmin disconnesso", Toast.LENGTH_SHORT).show()
             }
         }
+
+        @JavascriptInterface
+        fun downloadFile(filename: String, mimeType: String, content: String) {
+            runOnUiThread {
+                try {
+                    saveFileToDownloads(filename, mimeType, content)
+                } catch (e: Exception) {
+                    Toast.makeText(this@MainActivity, "Errore salvataggio: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun saveFileToDownloads(filename: String, mimeType: String, content: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
+                put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+            }
+            val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            if (uri != null) {
+                contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write(content.toByteArray(Charsets.UTF_8))
+                }
+                Toast.makeText(this, "File salvato nei Download: $filename", Toast.LENGTH_LONG).show()
+                return
+            }
+        }
+
+        // Fallback for older Android or direct file writing
+        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        if (!downloadsDir.exists()) {
+            downloadsDir.mkdirs()
+        }
+        val file = File(downloadsDir, filename)
+        FileOutputStream(file).use { outputStream ->
+            outputStream.write(content.toByteArray(Charsets.UTF_8))
+        }
+        Toast.makeText(this, "File salvato nei Download: $filename", Toast.LENGTH_LONG).show()
     }
 }
