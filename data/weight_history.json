@@ -878,5 +878,25 @@
     "ma_30d": 82.64,
     "change_prev_kg": -0.45,
     "change_from_start_kg": -4.05
+  },
+  {
+    "timestamp": "2026-10-21T05:41:57",
+    "date": "2026-10-21",
+    "time": "05:41:57",
+    "weight_kg": 81.55,
+    "weight_lbs": 179.79,
+    "bmi": 26.3,
+    "body_fat_pct": 26.0,
+    "body_water_pct": 50.8,
+    "bone_mass_kg": 3.07,
+    "muscle_mass_kg": 57.27,
+    "visceral_fat": 17.0,
+    "metabolic_age": 1199163188000.0,
+    "physique_rating": 2,
+    "source": "INDEX_SCALE",
+    "ma_7d": 82.02,
+    "ma_30d": 82.56,
+    "change_prev_kg": -0.45,
+    "change_from_start_kg": -4.5
   }
 ]
