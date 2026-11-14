@@ -1064,6 +1064,39 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
 
       </div>
 
+    
+      <!-- Weekly Fat Mass Box Plot Section -->
+      <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-sm border border-purple-500/20 bg-gradient-to-r from-purple-950/20 via-surface-900/60 to-indigo-950/20">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 sm:pb-4 border-b border-slate-800">
+          <div>
+            <h3 class="font-bold text-white text-base sm:text-lg flex items-center space-x-2">
+              <span data-i18n="fatBoxplotTitle">Distribuzione Settimanale Massa Grassa (Box Plot)</span>
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5" data-i18n="fatBoxplotSub">Mediana, quartili (Q1/Q3), min/max e oscillazione della massa grassa stimata (kg)</p>
+          </div>
+          <div class="flex items-center space-x-2 self-start sm:self-auto flex-wrap gap-y-1">
+            <span id="fatBoxplotRangeBadge" class="text-xs px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 font-medium">
+              Oscillazione media: calcolo...
+            </span>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 font-medium" data-i18n="latestWeekIncluded">
+              Ultima settimana inclusa
+            </span>
+          </div>
+        </div>
+        <div class="mt-4 sm:mt-6 relative h-[320px] sm:h-[360px] w-full">
+          <!-- Floating dismiss tooltip chip -->
+          <button 
+            id="btnDismissTooltipFatBoxplot" 
+            onclick="dismissChartTooltip('weeklyFatBoxplot')" 
+            class="hidden absolute top-2 right-2 z-20 flex items-center space-x-1 px-2.5 py-1 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-700 text-xs font-medium shadow-lg backdrop-blur-md transition"
+          >
+            <i data-lucide="x" class="w-3.5 h-3.5 text-rose-400"></i>
+            <span data-i18n="dismissTooltip">Chiudi dettaglio</span>
+          </button>
+          <canvas id="weeklyFatBoxplotChart"></canvas>
+        </div>
+      </div>
+
     </main>
 
     <!-- Footer -->
@@ -1122,6 +1155,8 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         stableTrend: "Trend 7G stabile",
         dismissTooltip: "Chiudi dettaglio",
         boxplotTitle: "Distribuzione Settimanale (Box Plot)",
+        fatBoxplotTitle: "Distribuzione Settimanale Massa Grassa (Box Plot)",
+        fatBoxplotSub: "Mediana, quartili (Q1/Q3), min/max e oscillazione della massa grassa stimata (kg)",
         boxplotSub: "Mediana, quartili (Q1/Q3), min/max, oscillazione e singole pesate per ogni settimana",
         typicalOscillation: "Oscillazione tipica:",
         oscillationCalc: "Oscillazione media: calcolo...",
@@ -1178,6 +1213,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         chartFatPct: "Grasso Corporeo %",
         chartWaterPct: "Acqua Corporea %",
         chartWeightDist: "Distribuzione Peso",
+        chartFatMassDist: "Distribuzione Massa Grassa",
         chartFatMassEst: "Massa Grassa Totale Stimata",
         chartMuscleMassEst: "Massa Muscolare Stimata",
         chartFatMassLabel: "Massa Grassa",
@@ -1239,6 +1275,8 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         stableTrend: "7D Trend stable",
         dismissTooltip: "Close details",
         boxplotTitle: "Weekly Distribution (Box Plot)",
+        fatBoxplotTitle: "Weekly Fat Mass Distribution (Box Plot)",
+        fatBoxplotSub: "Median, quartiles (Q1/Q3), min/max and oscillation of estimated fat mass (kg)",
         boxplotSub: "Median, quartiles (Q1/Q3), min/max, oscillation and weigh-ins per week",
         typicalOscillation: "Typical oscillation:",
         oscillationCalc: "Average oscillation: calculating...",
@@ -1295,6 +1333,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         chartFatPct: "Body Fat %",
         chartWaterPct: "Body Water %",
         chartWeightDist: "Weight Distribution",
+        chartFatMassDist: "Fat Mass Distribution",
         chartFatMassEst: "Estimated Total Fat Mass",
         chartMuscleMassEst: "Estimated Muscle Mass",
         chartFatMassLabel: "Fat Mass",
@@ -1356,6 +1395,8 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         stableTrend: "Tendencia 7D estable",
         dismissTooltip: "Cerrar detalle",
         boxplotTitle: "Distribución Semanal (Box Plot)",
+        fatBoxplotTitle: "Distribución Semanal Masa Grasa (Box Plot)",
+        fatBoxplotSub: "Mediana, cuartiles (Q1/Q3), mín/máx y oscilación de la masa grasa estimada (kg)",
         boxplotSub: "Mediana, cuartiles (Q1/Q3), mín/máx, oscilación y pesajes por semana",
         typicalOscillation: "Oscilación típica:",
         oscillationCalc: "Oscilación media: calculando...",
@@ -1412,6 +1453,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         chartFatPct: "Grasa Corporal %",
         chartWaterPct: "Agua Corporal %",
         chartWeightDist: "Distribución de Peso",
+        chartFatMassDist: "Distribución de Masa Grasa",
         chartFatMassEst: "Massa Grasa Total Estimada",
         chartMuscleMassEst: "Masa Muscular Estimada",
         chartFatMassLabel: "Masa Grasa",
@@ -1493,6 +1535,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
     let weeklyBoxplotInstance = null;
     let weeklyFatLossInstance = null;
     let weeklyMuscleInstance = null;
+    let weeklyFatBoxplotInstance = null;
 
     let dietStartDate = localStorage.getItem('my_weight_diet_start_date') || '';
 
@@ -1516,7 +1559,8 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         'weeklyBoxplot': {{ inst: weeklyBoxplotInstance, btnId: 'btnDismissTooltipBoxplot' }},
         'composition': {{ inst: compChartInstance, btnId: 'btnDismissTooltipComp' }},
         'weeklyFatLoss': {{ inst: weeklyFatLossInstance, btnId: 'btnDismissTooltipFat' }},
-        'weeklyMuscle': {{ inst: weeklyMuscleInstance, btnId: 'btnDismissTooltipMuscle' }}
+        'weeklyMuscle': {{ inst: weeklyMuscleInstance, btnId: 'btnDismissTooltipMuscle' }},
+        'weeklyFatBoxplot': {{ inst: weeklyFatBoxplotInstance, btnId: 'btnDismissTooltipFatBoxplot' }}
       }};
 
       if (!chartType) {{
@@ -3014,12 +3058,207 @@ ${{t('chartMedianWeight')}} ${{medW ? medW.toFixed(1) : '--'}} ${{unitStr}}${{ex
       }});
     }}
 
+    
+    function renderWeeklyFatBoxplot() {{
+      const canvas = document.getElementById('weeklyFatBoxplotChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const activeData = getActiveData();
+      if (!activeData || activeData.length === 0) return;
+
+      const mult = currentUnit === 'lbs' ? 2.20462 : 1.0;
+
+      // Group entries by Monday-Sunday calendar week
+      const weeksMap = new Map();
+
+      activeData.forEach(entry => {{
+        if (!entry.date || entry.weight_kg === null || entry.weight_kg === undefined) return;
+        if (entry.body_fat_pct === null || entry.body_fat_pct === undefined || isNaN(entry.body_fat_pct)) return;
+
+        const parts = entry.date.split('-');
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+
+        // Find Monday of this week (0=Mon, 6=Sun)
+        const dayOfWeek = (d.getDay() + 6) % 7;
+        const mon = new Date(d);
+        mon.setDate(d.getDate() - dayOfWeek);
+
+        const sun = new Date(mon);
+        sun.setDate(mon.getDate() + 6);
+
+        const key = mon.toISOString().slice(0, 10);
+        if (!weeksMap.has(key)) {{
+          weeksMap.set(key, {{
+            monday: mon,
+            sunday: sun,
+            fatWeights: []
+          }});
+        }}
+        const fatKg = entry.weight_kg * (entry.body_fat_pct / 100);
+        weeksMap.get(key).fatWeights.push(parseFloat((fatKg * mult).toFixed(2)));
+      }});
+
+      const sortedWeeks = Array.from(weeksMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      if (sortedWeeks.length === 0) return;
+
+      const monthsShort = t('monthsShort');
+      const labels = [];
+      const boxData = [];
+      const bgColors = [];
+      const borderColors = [];
+
+      sortedWeeks.forEach(([key, info], idx) => {{
+        const isCurrentWeek = (idx === sortedWeeks.length - 1);
+        const monStr = `${{info.monday.getDate()}} ${{monthsShort[info.monday.getMonth()]}}`;
+        const sunStr = `${{info.sunday.getDate()}} ${{monthsShort[info.sunday.getMonth()]}}`;
+        const label = `${{monStr}} - ${{sunStr}}${{isCurrentWeek ? ' (' + t('inProgressWeek') + ')' : ''}}`;
+
+        labels.push(label);
+        boxData.push(info.fatWeights);
+
+        if (isCurrentWeek) {{
+          bgColors.push('rgba(192, 132, 252, 0.45)'); // purple-400 for current week
+          borderColors.push('#c084fc');
+        }} else {{
+          bgColors.push('rgba(147, 51, 234, 0.35)'); // purple-600 for past weeks
+          borderColors.push('#a855f7');
+        }}
+      }});
+
+      const flatFats = boxData.flat().filter(w => w !== null && !isNaN(w));
+      const minF = flatFats.length > 0 ? Math.floor(Math.min(...flatFats) - 0.5) : undefined;
+      const maxF = flatFats.length > 0 ? Math.ceil(Math.max(...flatFats) + 0.5) : undefined;
+
+      const completedWeeksRanges = sortedWeeks
+        .filter(([_, info]) => info.fatWeights.length >= 3)
+        .map(([_, info]) => Math.max(...info.fatWeights) - Math.min(...info.fatWeights));
+
+      const avgOscillation = completedWeeksRanges.length > 0
+        ? (completedWeeksRanges.reduce((a, b) => a + b, 0) / completedWeeksRanges.length).toFixed(2)
+        : null;
+
+      const badge = document.getElementById('fatBoxplotRangeBadge');
+      if (badge) {{
+        badge.textContent = avgOscillation !== null
+          ? `${{t('typicalOscillation')}} ~${{avgOscillation}} ${{currentUnit}} (±${{(avgOscillation/2).toFixed(2)}} ${{currentUnit}})`
+          : `${{t('typicalOscillation')}} --`;
+      }}
+
+      if (weeklyFatBoxplotInstance) {{
+        weeklyFatBoxplotInstance.destroy();
+      }}
+
+      weeklyFatBoxplotInstance = new Chart(ctx, {{
+        type: 'boxplot',
+        data: {{
+          labels: labels,
+          datasets: [{{
+            label: `${{t('chartFatMassDist')}} (${{currentUnit}})`,
+            data: boxData,
+            backgroundColor: bgColors,
+            borderColor: borderColors,
+            borderWidth: 1.5,
+            itemRadius: 3.5,
+            itemBackgroundColor: 'rgba(255, 255, 255, 0.7)',
+            itemBorderColor: '#0f172a',
+            itemBorderWidth: 1,
+            outlierBackgroundColor: '#f43f5e',
+            outlierBorderColor: '#fda4af',
+            padding: 8
+          }}]
+        }},
+        options: {{
+          responsive: true,
+          maintainAspectRatio: false,
+          onClick: (evt, activeElements, chart) => {{
+            if (chart && chart.tooltip) {{
+              const active = chart.tooltip.getActiveElements() || [];
+              if (active.length > 0) {{
+                chart.tooltip.setActiveElements([], {{ x: 0, y: 0 }});
+                chart.update();
+                const btn = document.getElementById('btnDismissTooltipFatBoxplot');
+                if (btn) btn.classList.add('hidden');
+              }}
+            }}
+          }},
+          plugins: {{
+            legend: {{
+              display: true,
+              labels: {{
+                color: '#94a3b8',
+                boxWidth: 12,
+                font: {{ family: 'Inter', size: 12 }}
+              }}
+            }},
+            tooltip: {{
+              backgroundColor: '#0f172a',
+              titleColor: '#f8fafc',
+              bodyColor: '#cbd5e1',
+              borderColor: '#334155',
+              borderWidth: 1,
+              padding: 12,
+              external: function(context) {{
+                const btn = document.getElementById('btnDismissTooltipFatBoxplot');
+                if (!btn) return;
+                const tooltipModel = context.tooltip;
+                if (tooltipModel.opacity === 0) {{
+                  btn.classList.add('hidden');
+                }} else {{
+                  btn.classList.remove('hidden');
+                }}
+              }},
+              callbacks: {{
+                afterBody: function(context) {{
+                  const item = context[0];
+                  if (!item) return '';
+                  const rawArr = sortedWeeks[item.dataIndex][1].fatWeights;
+                  const count = rawArr.length;
+                  if (count === 0) return '';
+                  const avg = (rawArr.reduce((a, b) => a + b, 0) / count).toFixed(2);
+                  const minVal = Math.min(...rawArr).toFixed(2);
+                  const maxVal = Math.max(...rawArr).toFixed(2);
+                  const rangeVal = (Math.max(...rawArr) - Math.min(...rawArr)).toFixed(2);
+                  const medVal = getMedian(rawArr).toFixed(2);
+
+                  return `
+${{t('chartWeighInsCount')}} ${{count}} ${{t('weighInsDays')}}` +
+                         `
+${{t('chartMedian')}} ${{medVal}} ${{currentUnit}} (${{t('chartAverage')}} ${{avg}} ${{currentUnit}})` +
+                         `
+${{t('chartOscillationRange')}} ${{rangeVal}} ${{currentUnit}}` +
+                         `
+(Min: ${{minVal}} - Max: ${{maxVal}} ${{currentUnit}})`;
+                }}
+              }}
+            }}
+          }},
+          scales: {{
+            x: {{
+              grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
+              ticks: {{ color: '#94a3b8', font: {{ family: 'Inter', size: 11 }} }}
+            }},
+            y: {{
+              min: minF,
+              max: maxF,
+              grid: {{ color: 'rgba(255, 255, 255, 0.05)' }},
+              ticks: {{
+                color: '#64748b',
+                callback: (val) => `${{val.toFixed(1)}} ${{currentUnit}}`
+              }}
+            }}
+          }}
+        }}
+      }});
+    }}
+
+
     function renderCharts() {{
       try {{ renderMainChart(); }} catch (e) {{ console.error("Error rendering main chart:", e); }}
       try {{ renderWeeklyBoxplot(); }} catch (e) {{ console.error("Error rendering weekly boxplot:", e); }}
       try {{ renderCompositionChart(); }} catch (e) {{ console.error("Error rendering composition chart:", e); }}
       try {{ renderWeeklyFatLossChart(); }} catch (e) {{ console.error("Error rendering weekly fat loss chart:", e); }}
       try {{ renderWeeklyMuscleChart(); }} catch (e) {{ console.error("Error rendering weekly muscle chart:", e); }}
+      try {{ renderWeeklyFatBoxplot(); }} catch (e) {{ console.error("Error rendering weekly fat boxplot:", e); }}
     }}
 
     function renderTable() {{
