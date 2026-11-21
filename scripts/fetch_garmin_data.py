@@ -2140,13 +2140,11 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
             const v = d[h];
             if (v === null || v === undefined) return '';
             const s = String(v);
-            return s.includes(',') || s.includes('"') || s.includes('
-') ? `"${{s.replace(/"/g, '""')}}"` : s;
+            return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${{s.replace(/"/g, '""')}}"` : s;
           }});
           rows.push(row.join(','));
         }});
-        contentStr = rows.join('
-');
+        contentStr = rows.join('\n');
       }}
 
       // Check Android native download bridge
@@ -2686,7 +2684,6 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
 
       visibleWeeks.forEach(([key, info], idx) => {{
         const isCurrentWeek = (startIdx + idx === totalWeeksCount - 1);
-        const isCurrentWeek = (idx === sortedWeeks.length - 1);
         const monStr = `${{info.monday.getDate()}} ${{monthsShort[info.monday.getMonth()]}}`;
         const sunStr = `${{info.sunday.getDate()}} ${{monthsShort[info.sunday.getMonth()]}}`;
         const label = `${{monStr}} - ${{sunStr}}${{isCurrentWeek ? ' (' + t('inProgressWeek') + ')' : ''}}`;
@@ -3387,7 +3384,6 @@ ${{t('chartMedianWeight')}} ${{medW ? medW.toFixed(1) : '--'}} ${{unitStr}}${{ex
 
       visibleWeeks.forEach(([key, info], idx) => {{
         const isCurrentWeek = (startIdx + idx === totalWeeksCount - 1);
-        const isCurrentWeek = (idx === sortedWeeks.length - 1);
         const monStr = `${{info.monday.getDate()}} ${{monthsShort[info.monday.getMonth()]}}`;
         const sunStr = `${{info.sunday.getDate()}} ${{monthsShort[info.sunday.getMonth()]}}`;
         const label = `${{monStr}} - ${{sunStr}}${{isCurrentWeek ? ' (' + t('inProgressWeek') + ')' : ''}}`;

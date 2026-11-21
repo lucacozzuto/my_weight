@@ -2074,7 +2074,6 @@
 
       visibleWeeks.forEach(([key, info], idx) => {
         const isCurrentWeek = (startIdx + idx === totalWeeksCount - 1);
-        const isCurrentWeek = (idx === sortedWeeks.length - 1);
         const monStr = `${info.monday.getDate()} ${monthsShort[info.monday.getMonth()]}`;
         const sunStr = `${info.sunday.getDate()} ${monthsShort[info.sunday.getMonth()]}`;
         const label = `${monStr} - ${sunStr}${isCurrentWeek ? ' (' + t('inProgressWeek') + ')' : ''}`;
@@ -2766,7 +2765,6 @@
 
       visibleWeeks.forEach(([key, info], idx) => {
         const isCurrentWeek = (startIdx + idx === totalWeeksCount - 1);
-        const isCurrentWeek = (idx === sortedWeeks.length - 1);
         const monStr = `${info.monday.getDate()} ${monthsShort[info.monday.getMonth()]}`;
         const sunStr = `${info.sunday.getDate()} ${monthsShort[info.sunday.getMonth()]}`;
         const label = `${monStr} - ${sunStr}${isCurrentWeek ? ' (' + t('inProgressWeek') + ')' : ''}`;
