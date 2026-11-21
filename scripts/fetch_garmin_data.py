@@ -808,9 +808,18 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
             <span id="boxplotRangeBadge" class="text-xs px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">
               Oscillazione media: calcolo...
             </span>
-            <span class="text-xs px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-medium" data-i18n="latestWeekIncluded">
-              Ultima settimana inclusa
-            </span>
+            <div class="flex items-center space-x-1 bg-slate-900/90 border border-slate-700/80 rounded-xl p-1 text-xs">
+              <button id="btnPrevBoxplotWeeks" onclick="changeBoxplotPage(-1)" class="px-2 py-1 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition font-medium flex items-center space-x-1" title="Settimane precedenti">
+                <span data-i18n="btnPrevWeeks">◀ Prec</span>
+              </button>
+              <span id="boxplotPageIndicator" class="px-2 py-1 text-cyan-400 font-mono font-semibold text-[11px]"></span>
+              <button id="btnNextBoxplotWeeks" onclick="changeBoxplotPage(1)" class="px-2 py-1 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition font-medium flex items-center space-x-1" title="Settimane successive">
+                <span data-i18n="btnNextWeeks">Succ ▶</span>
+              </button>
+              <button id="btnToggleAllBoxplotWeeks" onclick="toggleBoxplotAllWeeks()" class="ml-1 px-2.5 py-1 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-300 hover:text-white transition font-semibold text-[11px] border border-indigo-500/30">
+                <span data-i18n="btnAllWeeks">Tutte</span>
+              </button>
+            </div>
           </div>
         </div>
         <div class="mt-4 sm:mt-6 relative h-[320px] sm:h-[360px] w-full">
@@ -1078,9 +1087,18 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
             <span id="fatBoxplotRangeBadge" class="text-xs px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 font-medium">
               Oscillazione media: calcolo...
             </span>
-            <span class="text-xs px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 font-medium" data-i18n="latestWeekIncluded">
-              Ultima settimana inclusa
-            </span>
+            <div class="flex items-center space-x-1 bg-slate-900/90 border border-slate-700/80 rounded-xl p-1 text-xs">
+              <button id="btnPrevFatBoxplotWeeks" onclick="changeFatBoxplotPage(-1)" class="px-2 py-1 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition font-medium flex items-center space-x-1" title="Settimane precedenti">
+                <span data-i18n="btnPrevWeeks">◀ Prec</span>
+              </button>
+              <span id="fatBoxplotPageIndicator" class="px-2 py-1 text-purple-400 font-mono font-semibold text-[11px]"></span>
+              <button id="btnNextFatBoxplotWeeks" onclick="changeFatBoxplotPage(1)" class="px-2 py-1 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition font-medium flex items-center space-x-1" title="Settimane successive">
+                <span data-i18n="btnNextWeeks">Succ ▶</span>
+              </button>
+              <button id="btnToggleAllFatBoxplotWeeks" onclick="toggleFatBoxplotAllWeeks()" class="ml-1 px-2.5 py-1 rounded-lg bg-purple-600/30 hover:bg-purple-600 text-purple-300 hover:text-white transition font-semibold text-[11px] border border-purple-500/30">
+                <span data-i18n="btnAllWeeks">Tutte</span>
+              </button>
+            </div>
           </div>
         </div>
         <div class="mt-4 sm:mt-6 relative h-[320px] sm:h-[360px] w-full">
@@ -1161,6 +1179,14 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         typicalOscillation: "Oscillazione tipica:",
         oscillationCalc: "Oscillazione media: calcolo...",
         latestWeekIncluded: "Ultima settimana inclusa",
+        btnPrevWeeks: "◀ Prec",
+        btnNextWeeks: "Succ ▶",
+        btnAllWeeks: "Tutte",
+        btnRecentWeeks: "9 Sett.",
+        showingWeeks: "Sett.",
+        ofTotalWeeks: "di",
+        chartTrendBand: "Fascia Trend Oscillazione",
+        chartWeeklyRangeBand: "Fascia Oscillazione Settimanale",
         compTitle: "Composizione Corporea nel Tempo",
         compSub: "Grasso % e Acqua %",
         tableHeaderTitle: "Storico Pesate",
@@ -1281,6 +1307,14 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         typicalOscillation: "Typical oscillation:",
         oscillationCalc: "Average oscillation: calculating...",
         latestWeekIncluded: "Latest week included",
+        btnPrevWeeks: "◀ Prev",
+        btnNextWeeks: "Next ▶",
+        btnAllWeeks: "All",
+        btnRecentWeeks: "9 Wks",
+        showingWeeks: "Wks",
+        ofTotalWeeks: "of",
+        chartTrendBand: "Trend Oscillation Band",
+        chartWeeklyRangeBand: "Weekly Oscillation Band",
         compTitle: "Body Composition Over Time",
         compSub: "Body Fat % and Water %",
         tableHeaderTitle: "Weigh-in History",
@@ -1401,6 +1435,14 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         typicalOscillation: "Oscilación típica:",
         oscillationCalc: "Oscilación media: calculando...",
         latestWeekIncluded: "Última semana incluida",
+        btnPrevWeeks: "◀ Ant",
+        btnNextWeeks: "Sig ▶",
+        btnAllWeeks: "Todas",
+        btnRecentWeeks: "9 Sem.",
+        showingWeeks: "Sem.",
+        ofTotalWeeks: "de",
+        chartTrendBand: "Banda de Oscilación de Tendencia",
+        chartWeeklyRangeBand: "Banda de Oscilación Semanal",
         compTitle: "Composición Corporal en el Tiempo",
         compSub: "Grasa % y Agua %",
         tableHeaderTitle: "Historial de Pesajes",
@@ -1536,6 +1578,34 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
     let weeklyFatLossInstance = null;
     let weeklyMuscleInstance = null;
     let weeklyFatBoxplotInstance = null;
+    let boxplotOffset = 0; // 0 = latest 9 weeks, -1 = older 9 weeks, etc.
+    let boxplotShowAll = false;
+    let fatBoxplotOffset = 0;
+    let fatBoxplotShowAll = false;
+
+    function changeBoxplotPage(delta) {{
+      boxplotShowAll = false;
+      boxplotOffset += delta;
+      renderWeeklyBoxplot();
+    }}
+
+    function toggleBoxplotAllWeeks() {{
+      boxplotShowAll = !boxplotShowAll;
+      if (!boxplotShowAll) boxplotOffset = 0;
+      renderWeeklyBoxplot();
+    }}
+
+    function changeFatBoxplotPage(delta) {{
+      fatBoxplotShowAll = false;
+      fatBoxplotOffset += delta;
+      renderWeeklyFatBoxplot();
+    }}
+
+    function toggleFatBoxplotAllWeeks() {{
+      fatBoxplotShowAll = !fatBoxplotShowAll;
+      if (!fatBoxplotShowAll) fatBoxplotOffset = 0;
+      renderWeeklyFatBoxplot();
+    }}
 
     let dietStartDate = localStorage.getItem('my_weight_diet_start_date') || '';
 
@@ -2070,11 +2140,13 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
             const v = d[h];
             if (v === null || v === undefined) return '';
             const s = String(v);
-            return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${{s.replace(/"/g, '""')}}"` : s;
+            return s.includes(',') || s.includes('"') || s.includes('
+') ? `"${{s.replace(/"/g, '""')}}"` : s;
           }});
           rows.push(row.join(','));
         }});
-        contentStr = rows.join('\n');
+        contentStr = rows.join('
+');
       }}
 
       // Check Android native download bridge
@@ -2209,10 +2281,35 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
         }}
       }}
 
+      // Compute trend oscillation band (moving average +/- average typical oscillation)
+      const validWeights = weights.filter(w => w !== null && !isNaN(w));
+      let meanOscillation = 0.5; // default in kg
+      if (validWeights.length >= 2) {{
+        let diffSum = 0, diffCnt = 0;
+        for (let i = 1; i < validWeights.length; i++) {{
+          diffSum += Math.abs(validWeights[i] - validWeights[i-1]);
+          diffCnt++;
+        }}
+        if (diffCnt > 0) meanOscillation = Math.max(0.35, (diffSum / diffCnt) * 1.25);
+      }}
+
+      const trendUpperBand = [];
+      const trendLowerBand = [];
+      for (let i = 0; i < weights.length; i++) {{
+        const center = ma7[i] !== null ? ma7[i] : weights[i];
+        if (center !== null && center !== undefined) {{
+          trendUpperBand.push(parseFloat((center + meanOscillation).toFixed(2)));
+          trendLowerBand.push(parseFloat((center - meanOscillation).toFixed(2)));
+        }} else {{
+          trendUpperBand.push(null);
+          trendLowerBand.push(null);
+        }}
+      }}
+
       const allLabels = [...histLabels, ...futureLabels];
       const paddedWeights = [...weights, ...Array(futureLabels.length).fill(null)];
-      const paddedMa7 = [...ma7, ...Array(futureLabels.length).fill(null)];
-      const paddedMa30 = [...ma30, ...Array(futureLabels.length).fill(null)];
+      const paddedUpperBand = [...trendUpperBand, ...Array(futureLabels.length).fill(null)];
+      const paddedLowerBand = [...trendLowerBand, ...Array(futureLabels.length).fill(null)];
 
       const forecastSeries = Array(Math.max(0, histLabels.length - 1)).fill(null);
       if (latestMa7 !== null && forecastPoints.length > 0) {{
@@ -2242,47 +2339,50 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
           labels: allLabels,
           datasets: [
             {{
+              label: `${{t('chartTrendBand')}} (Upper)`,
+              data: paddedUpperBand,
+              borderColor: 'transparent',
+              backgroundColor: 'transparent',
+              borderWidth: 0,
+              fill: false,
+              pointRadius: 0,
+              pointHoverRadius: 0,
+              tension: 0.3
+            }},
+            {{
+              label: `${{t('chartTrendBand')}} (±${{meanOscillation.toFixed(2)}} ${{unitStr}})`,
+              data: paddedLowerBand,
+              borderColor: 'transparent',
+              backgroundColor: 'rgba(99, 102, 241, 0.15)',
+              borderWidth: 0,
+              fill: '-1',
+              pointRadius: 0,
+              pointHoverRadius: 0,
+              tension: 0.3
+            }},
+            {{
               label: `${{t('chartDailyWeight')}} (${{unitStr}})`,
               data: paddedWeights,
               borderColor: '#818cf8',
               backgroundColor: gradient,
               borderWidth: 2.5,
-              fill: true,
-              tension: 0.3,
+              fill: false,
+              tension: 0.25,
               pointBackgroundColor: '#6366f1',
               pointBorderColor: '#ffffff',
               pointHoverRadius: 6,
               pointRadius: filtered.length > 60 ? 2 : 4,
             }},
             {{
-              label: t('chartMa7'),
-              data: paddedMa7,
-              borderColor: '#38bdf8',
-              borderWidth: 2.5,
-              fill: false,
-              tension: 0.3,
-              pointRadius: 0,
-            }},
-            {{
               label: t('chartForecast7g'),
               data: forecastSeries,
               borderColor: '#06b6d4',
-              borderWidth: 2,
+              borderWidth: 2.2,
               borderDash: [4, 4],
               fill: false,
               tension: 0.1,
               pointRadius: 0,
               pointHoverRadius: 4,
-            }},
-            {{
-              label: t('chartMa30'),
-              data: paddedMa30,
-              borderColor: '#34d399',
-              borderWidth: 1.8,
-              borderDash: [3, 3],
-              fill: false,
-              tension: 0.3,
-              pointRadius: 0,
             }},
             {{
               label: `${{t('chartTarget')}} (${{targetVal.toFixed(1)}} ${{unitStr}})`,
@@ -2526,13 +2626,66 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
       const sortedWeeks = Array.from(weeksMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
       if (sortedWeeks.length === 0) return;
 
+      const totalWeeksCount = sortedWeeks.length;
+      const windowSize = 9;
+
+      // Calculate slice based on boxplotOffset & boxplotShowAll
+      let visibleWeeks = sortedWeeks;
+      let startIdx = 0;
+      let endIdx = totalWeeksCount;
+
+      if (!boxplotShowAll && totalWeeksCount > windowSize) {{
+        const maxOffset = 0;
+        const minOffset = -(Math.ceil((totalWeeksCount - windowSize) / windowSize));
+        boxplotOffset = Math.max(minOffset, Math.min(maxOffset, boxplotOffset));
+
+        endIdx = totalWeeksCount + (boxplotOffset * windowSize);
+        endIdx = Math.max(windowSize, Math.min(totalWeeksCount, endIdx));
+        startIdx = Math.max(0, endIdx - windowSize);
+        visibleWeeks = sortedWeeks.slice(startIdx, endIdx);
+      }}
+
+      // Update indicator and buttons
+      const indEl = document.getElementById('boxplotPageIndicator');
+      const prevBtn = document.getElementById('btnPrevBoxplotWeeks');
+      const nextBtn = document.getElementById('btnNextBoxplotWeeks');
+      const toggleBtn = document.getElementById('btnToggleAllBoxplotWeeks');
+
+      if (indEl) {{
+        if (boxplotShowAll || totalWeeksCount <= windowSize) {{
+          indEl.textContent = `${{totalWeeksCount}} / ${{totalWeeksCount}}`;
+          if (prevBtn) prevBtn.disabled = true;
+          if (nextBtn) nextBtn.disabled = true;
+          if (prevBtn) prevBtn.classList.add('opacity-40', 'cursor-not-allowed');
+          if (nextBtn) nextBtn.classList.add('opacity-40', 'cursor-not-allowed');
+        }} else {{
+          indEl.textContent = `${{startIdx + 1}}-${{endIdx}} ${{t('ofTotalWeeks')}} ${{totalWeeksCount}}`;
+          const canPrev = startIdx > 0;
+          const canNext = endIdx < totalWeeksCount;
+          if (prevBtn) {{
+            prevBtn.disabled = !canPrev;
+            prevBtn.classList.toggle('opacity-40', !canPrev);
+            prevBtn.classList.toggle('cursor-not-allowed', !canPrev);
+          }}
+          if (nextBtn) {{
+            nextBtn.disabled = !canNext;
+            nextBtn.classList.toggle('opacity-40', !canNext);
+            nextBtn.classList.toggle('cursor-not-allowed', !canNext);
+          }}
+        }}
+      }}
+      if (toggleBtn) {{
+        toggleBtn.textContent = boxplotShowAll ? t('btnRecentWeeks') : t('btnAllWeeks');
+      }}
+
       const monthsShort = t('monthsShort');
       const labels = [];
       const boxData = [];
       const bgColors = [];
       const borderColors = [];
 
-      sortedWeeks.forEach(([key, info], idx) => {{
+      visibleWeeks.forEach(([key, info], idx) => {{
+        const isCurrentWeek = (startIdx + idx === totalWeeksCount - 1);
         const isCurrentWeek = (idx === sortedWeeks.length - 1);
         const monStr = `${{info.monday.getDate()}} ${{monthsShort[info.monday.getMonth()]}}`;
         const sunStr = `${{info.sunday.getDate()}} ${{monthsShort[info.sunday.getMonth()]}}`;
@@ -2636,7 +2789,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
                 afterBody: function(context) {{
                   const item = context[0];
                   if (!item) return '';
-                  const rawArr = sortedWeeks[item.dataIndex][1].weights;
+                  const rawArr = visibleWeeks[item.dataIndex][1].weights;
                   const count = rawArr.length;
                   if (count === 0) return '';
                   const avg = (rawArr.reduce((a, b) => a + b, 0) / count).toFixed(2);
@@ -2736,6 +2889,24 @@ ${{t('chartOscillationRange')}} ${{rangeVal}} ${{currentUnit}}` +
         }}
       }});
 
+      const fatMinBand = [];
+      const fatMaxBand = [];
+      sortedWeeks.forEach(([key, info]) => {{
+        const fats = [];
+        for (let i = 0; i < info.weights.length; i++) {{
+          const w = info.weights[i];
+          const f = info.bodyFats[i];
+          if (w && f) fats.push(w * (f / 100));
+        }}
+        if (fats.length > 0) {{
+          fatMinBand.push(parseFloat(Math.min(...fats).toFixed(2)));
+          fatMaxBand.push(parseFloat(Math.max(...fats).toFixed(2)));
+        }} else {{
+          fatMinBand.push(null);
+          fatMaxBand.push(null);
+        }}
+      }});
+
       const validFatVals = totalFatMassLine.filter(v => v !== null && !isNaN(v));
       const minFat = validFatVals.length > 0 ? Math.floor(Math.min(...validFatVals) - 0.5) : undefined;
       const maxFat = validFatVals.length > 0 ? Math.ceil(Math.max(...validFatVals) + 0.5) : undefined;
@@ -2754,12 +2925,34 @@ ${{t('chartOscillationRange')}} ${{rangeVal}} ${{currentUnit}}` +
           labels: labels,
           datasets: [
             {{
+              label: `${{t('chartWeeklyRangeBand')}} (Max)`,
+              data: fatMaxBand,
+              borderColor: 'transparent',
+              backgroundColor: 'transparent',
+              borderWidth: 0,
+              fill: false,
+              pointRadius: 0,
+              pointHoverRadius: 0,
+              tension: 0.25
+            }},
+            {{
+              label: `${{t('chartWeeklyRangeBand')}} (Min-Max)`,
+              data: fatMinBand,
+              borderColor: 'transparent',
+              backgroundColor: 'rgba(168, 85, 247, 0.18)',
+              borderWidth: 0,
+              fill: '-1',
+              pointRadius: 0,
+              pointHoverRadius: 0,
+              tension: 0.25
+            }},
+            {{
               label: `${{t('chartFatMassEst')}} (${{unitStr}})`,
               data: totalFatMassLine,
               borderColor: '#c084fc',
               backgroundColor: gradient,
               borderWidth: 2.5,
-              fill: true,
+              fill: false,
               tension: 0.25,
               pointBackgroundColor: '#a855f7',
               pointBorderColor: '#ffffff',
@@ -2926,6 +3119,19 @@ ${{t('chartMedianFat')}} ${{medF.toFixed(1)}}%${{extra}}`;
         }}
       }});
 
+      const muscleMinBand = [];
+      const muscleMaxBand = [];
+      sortedWeeks.forEach(([key, info]) => {{
+        const validM = (info.muscles || []).filter(m => m !== null && !isNaN(m));
+        if (validM.length > 0) {{
+          muscleMinBand.push(parseFloat(Math.min(...validM).toFixed(2)));
+          muscleMaxBand.push(parseFloat(Math.max(...validM).toFixed(2)));
+        }} else {{
+          muscleMinBand.push(null);
+          muscleMaxBand.push(null);
+        }}
+      }});
+
       const validMuscleVals = totalMuscleLine.filter(v => v !== null && !isNaN(v));
       const minMuscle = validMuscleVals.length > 0 ? Math.floor(Math.min(...validMuscleVals) - 0.5) : undefined;
       const maxMuscle = validMuscleVals.length > 0 ? Math.ceil(Math.max(...validMuscleVals) + 0.5) : undefined;
@@ -2944,12 +3150,34 @@ ${{t('chartMedianFat')}} ${{medF.toFixed(1)}}%${{extra}}`;
           labels: labels,
           datasets: [
             {{
+              label: `${{t('chartWeeklyRangeBand')}} (Max)`,
+              data: muscleMaxBand,
+              borderColor: 'transparent',
+              backgroundColor: 'transparent',
+              borderWidth: 0,
+              fill: false,
+              pointRadius: 0,
+              pointHoverRadius: 0,
+              tension: 0.25
+            }},
+            {{
+              label: `${{t('chartWeeklyRangeBand')}} (Min-Max)`,
+              data: muscleMinBand,
+              borderColor: 'transparent',
+              backgroundColor: 'rgba(6, 182, 212, 0.18)',
+              borderWidth: 0,
+              fill: '-1',
+              pointRadius: 0,
+              pointHoverRadius: 0,
+              tension: 0.25
+            }},
+            {{
               label: `${{t('chartMuscleMassEst')}} (${{unitStr}})`,
               data: totalMuscleLine,
               borderColor: '#22d3ee',
               backgroundColor: gradient,
               borderWidth: 2.5,
-              fill: true,
+              fill: false,
               tension: 0.25,
               pointBackgroundColor: '#06b6d4',
               pointBorderColor: '#ffffff',
@@ -3101,13 +3329,64 @@ ${{t('chartMedianWeight')}} ${{medW ? medW.toFixed(1) : '--'}} ${{unitStr}}${{ex
       const sortedWeeks = Array.from(weeksMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
       if (sortedWeeks.length === 0) return;
 
+      const totalWeeksCount = sortedWeeks.length;
+      const windowSize = 9;
+
+      let visibleWeeks = sortedWeeks;
+      let startIdx = 0;
+      let endIdx = totalWeeksCount;
+
+      if (!fatBoxplotShowAll && totalWeeksCount > windowSize) {{
+        const maxOffset = 0;
+        const minOffset = -(Math.ceil((totalWeeksCount - windowSize) / windowSize));
+        fatBoxplotOffset = Math.max(minOffset, Math.min(maxOffset, fatBoxplotOffset));
+
+        endIdx = totalWeeksCount + (fatBoxplotOffset * windowSize);
+        endIdx = Math.max(windowSize, Math.min(totalWeeksCount, endIdx));
+        startIdx = Math.max(0, endIdx - windowSize);
+        visibleWeeks = sortedWeeks.slice(startIdx, endIdx);
+      }}
+
+      const indEl = document.getElementById('fatBoxplotPageIndicator');
+      const prevBtn = document.getElementById('btnPrevFatBoxplotWeeks');
+      const nextBtn = document.getElementById('btnNextFatBoxplotWeeks');
+      const toggleBtn = document.getElementById('btnToggleAllFatBoxplotWeeks');
+
+      if (indEl) {{
+        if (fatBoxplotShowAll || totalWeeksCount <= windowSize) {{
+          indEl.textContent = `${{totalWeeksCount}} / ${{totalWeeksCount}}`;
+          if (prevBtn) prevBtn.disabled = true;
+          if (nextBtn) nextBtn.disabled = true;
+          if (prevBtn) prevBtn.classList.add('opacity-40', 'cursor-not-allowed');
+          if (nextBtn) nextBtn.classList.add('opacity-40', 'cursor-not-allowed');
+        }} else {{
+          indEl.textContent = `${{startIdx + 1}}-${{endIdx}} ${{t('ofTotalWeeks')}} ${{totalWeeksCount}}`;
+          const canPrev = startIdx > 0;
+          const canNext = endIdx < totalWeeksCount;
+          if (prevBtn) {{
+            prevBtn.disabled = !canPrev;
+            prevBtn.classList.toggle('opacity-40', !canPrev);
+            prevBtn.classList.toggle('cursor-not-allowed', !canPrev);
+          }}
+          if (nextBtn) {{
+            nextBtn.disabled = !canNext;
+            nextBtn.classList.toggle('opacity-40', !canNext);
+            nextBtn.classList.toggle('cursor-not-allowed', !canNext);
+          }}
+        }}
+      }}
+      if (toggleBtn) {{
+        toggleBtn.textContent = fatBoxplotShowAll ? t('btnRecentWeeks') : t('btnAllWeeks');
+      }}
+
       const monthsShort = t('monthsShort');
       const labels = [];
       const boxData = [];
       const bgColors = [];
       const borderColors = [];
 
-      sortedWeeks.forEach(([key, info], idx) => {{
+      visibleWeeks.forEach(([key, info], idx) => {{
+        const isCurrentWeek = (startIdx + idx === totalWeeksCount - 1);
         const isCurrentWeek = (idx === sortedWeeks.length - 1);
         const monStr = `${{info.monday.getDate()}} ${{monthsShort[info.monday.getMonth()]}}`;
         const sunStr = `${{info.sunday.getDate()}} ${{monthsShort[info.sunday.getMonth()]}}`;
@@ -3211,7 +3490,7 @@ ${{t('chartMedianWeight')}} ${{medW ? medW.toFixed(1) : '--'}} ${{unitStr}}${{ex
                 afterBody: function(context) {{
                   const item = context[0];
                   if (!item) return '';
-                  const rawArr = sortedWeeks[item.dataIndex][1].fatWeights;
+                  const rawArr = visibleWeeks[item.dataIndex][1].fatWeights;
                   const count = rawArr.length;
                   if (count === 0) return '';
                   const avg = (rawArr.reduce((a, b) => a + b, 0) / count).toFixed(2);
