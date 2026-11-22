@@ -2140,11 +2140,11 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
             const v = d[h];
             if (v === null || v === undefined) return '';
             const s = String(v);
-            return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${{s.replace(/"/g, '""')}}"` : s;
+            return s.includes(',') || s.includes('"') || s.includes('\\n') ? `"${{s.replace(/"/g, '""')}}"` : s;
           }});
           rows.push(row.join(','));
         }});
-        contentStr = rows.join('\n');
+        contentStr = rows.join('\\n');
       }}
 
       // Check Android native download bridge
@@ -2319,7 +2319,7 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
 
       const targetSeries = Array(allLabels.length).fill(targetVal);
 
-      const allValues = [...paddedWeights, ...paddedMa7, ...paddedMa30, targetVal, ...forecastPoints].filter(v => v !== null && !isNaN(v));
+      const allValues = [...paddedWeights, ...paddedUpperBand, ...paddedLowerBand, targetVal, ...forecastPoints].filter(v => v !== null && !isNaN(v));
       const minW = allValues.length > 0 ? Math.floor(Math.min(...allValues) - 1) : undefined;
       const maxW = allValues.length > 0 ? Math.ceil(Math.max(...allValues) + 1) : undefined;
 
@@ -2440,7 +2440,8 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
                 color: '#94a3b8',
                 boxWidth: 12,
                 usePointStyle: true,
-                font: {{ family: 'Inter', size: 12 }}
+                font: {{ family: 'Inter', size: 12 }},
+                filter: (item) => !item.text.includes('(Upper)')
               }}
             }},
             tooltip: {{
@@ -2460,10 +2461,19 @@ def build_dashboard_html(entries: list, summary: dict, password: str | None = No
                   btn.classList.remove('hidden');
                 }}
               }},
+              filter: (item) => item.datasetIndex !== 0,
               callbacks: {{
                 label: function(context) {{
                   const val = context.parsed.y;
                   if (val === null || val === undefined) return '';
+                  if (context.datasetIndex === 1) {{
+                    const lo = paddedLowerBand[context.dataIndex];
+                    const hi = paddedUpperBand[context.dataIndex];
+                    if (lo !== null && lo !== undefined && hi !== null && hi !== undefined) {{
+                      return `${{t('chartTrendBand')}}: ${{lo.toFixed(1)}} – ${{hi.toFixed(1)}} ${{unitStr}}`;
+                    }}
+                    return '';
+                  }}
                   return `${{context.dataset.label}}: ${{val.toFixed(1)}} ${{unitStr}}`;
                 }}
               }}
@@ -2852,12 +2862,14 @@ ${{t('chartOscillationRange')}} ${{rangeVal}} ${{currentUnit}}` +
             monday: mon,
             sunday: sun,
             weights: [],
-            bodyFats: []
+            bodyFats: [],
+            fatWeights: []
           }});
         }}
         weeksMap.get(key).weights.push(entry.weight_kg * mult);
         if (entry.body_fat_pct !== null && entry.body_fat_pct !== undefined && !isNaN(entry.body_fat_pct)) {{
           weeksMap.get(key).bodyFats.push(entry.body_fat_pct);
+          weeksMap.get(key).fatWeights.push((entry.weight_kg * mult) * (entry.body_fat_pct / 100));
         }}
       }});
 
@@ -2889,12 +2901,7 @@ ${{t('chartOscillationRange')}} ${{rangeVal}} ${{currentUnit}}` +
       const fatMinBand = [];
       const fatMaxBand = [];
       sortedWeeks.forEach(([key, info]) => {{
-        const fats = [];
-        for (let i = 0; i < info.weights.length; i++) {{
-          const w = info.weights[i];
-          const f = info.bodyFats[i];
-          if (w && f) fats.push(w * (f / 100));
-        }}
+        const fats = info.fatWeights || [];
         if (fats.length > 0) {{
           fatMinBand.push(parseFloat(Math.min(...fats).toFixed(2)));
           fatMaxBand.push(parseFloat(Math.max(...fats).toFixed(2)));
@@ -2904,7 +2911,7 @@ ${{t('chartOscillationRange')}} ${{rangeVal}} ${{currentUnit}}` +
         }}
       }});
 
-      const validFatVals = totalFatMassLine.filter(v => v !== null && !isNaN(v));
+      const validFatVals = [...totalFatMassLine, ...fatMinBand, ...fatMaxBand].filter(v => v !== null && !isNaN(v));
       const minFat = validFatVals.length > 0 ? Math.floor(Math.min(...validFatVals) - 0.5) : undefined;
       const maxFat = validFatVals.length > 0 ? Math.ceil(Math.max(...validFatVals) + 0.5) : undefined;
 
@@ -2983,7 +2990,8 @@ ${{t('chartOscillationRange')}} ${{rangeVal}} ${{currentUnit}}` +
               labels: {{
                 color: '#94a3b8',
                 boxWidth: 12,
-                font: {{ family: 'Inter', size: 12 }}
+                font: {{ family: 'Inter', size: 12 }},
+                filter: (item) => !item.text.includes('(Max)')
               }}
             }},
             tooltip: {{
@@ -2993,6 +3001,7 @@ ${{t('chartOscillationRange')}} ${{rangeVal}} ${{currentUnit}}` +
               borderColor: '#334155',
               borderWidth: 1,
               padding: 12,
+              filter: (item) => item.datasetIndex !== 0,
               external: function(context) {{
                 const btn = document.getElementById('btnDismissTooltipFat');
                 if (!btn) return;
@@ -3007,6 +3016,14 @@ ${{t('chartOscillationRange')}} ${{rangeVal}} ${{currentUnit}}` +
                 label: function(context) {{
                   const val = context.parsed.y;
                   if (val === null || val === undefined) return '';
+                  if (context.datasetIndex === 1) {{
+                    const minV = fatMinBand[context.dataIndex];
+                    const maxV = fatMaxBand[context.dataIndex];
+                    if (minV !== null && maxV !== null) {{
+                      return `${{t('chartWeeklyRangeBand')}}: ${{minV.toFixed(2)}} – ${{maxV.toFixed(2)}} ${{unitStr}}`;
+                    }}
+                    return '';
+                  }}
                   return `${{t('chartFatMassLabel')}}: ${{val.toFixed(2)}} ${{unitStr}}`;
                 }},
                 afterBody: function(context) {{
@@ -3129,7 +3146,7 @@ ${{t('chartMedianFat')}} ${{medF.toFixed(1)}}%${{extra}}`;
         }}
       }});
 
-      const validMuscleVals = totalMuscleLine.filter(v => v !== null && !isNaN(v));
+      const validMuscleVals = [...totalMuscleLine, ...muscleMinBand, ...muscleMaxBand].filter(v => v !== null && !isNaN(v));
       const minMuscle = validMuscleVals.length > 0 ? Math.floor(Math.min(...validMuscleVals) - 0.5) : undefined;
       const maxMuscle = validMuscleVals.length > 0 ? Math.ceil(Math.max(...validMuscleVals) + 0.5) : undefined;
 
@@ -3208,7 +3225,8 @@ ${{t('chartMedianFat')}} ${{medF.toFixed(1)}}%${{extra}}`;
               labels: {{
                 color: '#94a3b8',
                 boxWidth: 12,
-                font: {{ family: 'Inter', size: 12 }}
+                font: {{ family: 'Inter', size: 12 }},
+                filter: (item) => !item.text.includes('(Max)')
               }}
             }},
             tooltip: {{
@@ -3218,6 +3236,7 @@ ${{t('chartMedianFat')}} ${{medF.toFixed(1)}}%${{extra}}`;
               borderColor: '#334155',
               borderWidth: 1,
               padding: 12,
+              filter: (item) => item.datasetIndex !== 0,
               external: function(context) {{
                 const btn = document.getElementById('btnDismissTooltipMuscle');
                 if (!btn) return;
@@ -3232,6 +3251,14 @@ ${{t('chartMedianFat')}} ${{medF.toFixed(1)}}%${{extra}}`;
                 label: function(context) {{
                   const val = context.parsed.y;
                   if (val === null || val === undefined) return '';
+                  if (context.datasetIndex === 1) {{
+                    const minV = muscleMinBand[context.dataIndex];
+                    const maxV = muscleMaxBand[context.dataIndex];
+                    if (minV !== null && maxV !== null) {{
+                      return `${{t('chartWeeklyRangeBand')}}: ${{minV.toFixed(2)}} – ${{maxV.toFixed(2)}} ${{unitStr}}`;
+                    }}
+                    return '';
+                  }}
                   return `${{t('chartMuscleMassLabel')}}: ${{val.toFixed(2)}} ${{unitStr}}`;
                 }},
                 afterBody: function(context) {{
